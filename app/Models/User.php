@@ -9,6 +9,7 @@ use Spatie\Permission\Traits\HasRoles; // ← este es el que falta
 
 class User extends Authenticatable
 {
+<<<<<<< HEAD
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, HasRoles; // ← HasRoles viene del use de arriba
 
@@ -16,6 +17,17 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+=======
+    use Notifiable, HasRoles;
+
+    protected $fillable = [
+        'full_name',
+        'username',
+        'email',
+        'password',
+        'role',
+        'department_id',
+>>>>>>> master
     ];
 
     protected $hidden = [
@@ -23,11 +35,17 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+<<<<<<< HEAD
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+=======
+    public function department()
+    {
+        return $this->belongsTo(Departamento::class);
+>>>>>>> master
     }
 }
