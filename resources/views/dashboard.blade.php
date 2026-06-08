@@ -10,8 +10,6 @@
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
                     {{ __("You're logged in!") }}
-<<<<<<< HEAD
-=======
 
                     @role('admin')
                         <div class="mt-6 border-t pt-4">
@@ -21,7 +19,6 @@
                             </a>
                         </div>
                     @endrole
->>>>>>> master
                 </div>
             </div>
         </div>

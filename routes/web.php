@@ -1,27 +1,21 @@
 <?php
 
-<<<<<<< HEAD
 use App\Http\Controllers\ProfileController;
-=======
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AlumnoController;
 use App\Http\Controllers\CursosController;
 use App\Http\Controllers\DepartamentoController;
->>>>>>> master
 use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
 | Web Routes
 |--------------------------------------------------------------------------
-<<<<<<< HEAD
 |
 | Here is where you can register web routes for your application. These
 | routes are loaded by the RouteServiceProvider and all of them will
 | be assigned to the "web" middleware group. Make something great!
 |
-=======
->>>>>>> master
 */
 
 Route::get('/', function () {
@@ -32,22 +26,18 @@ Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-<<<<<<< HEAD
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-require __DIR__.'/auth.php';
-=======
-
 // ── GRUPO PRINCIPAL DEL SUPERVISOR ──────────────────────────────────────────
 Route::middleware(['auth', 'role:supervisor'])
     ->prefix('supervisor')
     ->name('supervisor.')
     ->group(function () {
-        
+
         // 1. Vista: resources/views/supervisor/index.blade.php
         Route::get('/', function () {
             return view('supervisor.index');
@@ -67,7 +57,7 @@ Route::middleware(['auth', 'role:supervisor'])
         Route::resource('cursos', CursosController::class)->only([
             'index', 'show'
         ]);
-        
+
         Route::get('cursos/{curso}/alumnos', [CursosController::class, 'alumnos'])
             ->name('cursos.alumnos');
 
@@ -75,7 +65,7 @@ Route::middleware(['auth', 'role:supervisor'])
         Route::resource('departamentos', DepartamentoController::class)->only([
             'index', 'create', 'store', 'edit', 'update', 'destroy'
         ])->parameters([
-            'departamentos' => 'departamento' // Le dice a Laravel: El ID individual se llamará {departamento}
+            'departamentos' => 'departamento'
         ]);
 
     });
@@ -89,4 +79,3 @@ Route::middleware(['auth', 'role:admin'])
     });
 
 require __DIR__.'/auth.php';
->>>>>>> master

@@ -5,11 +5,31 @@
     <form method="POST" action="{{ route('login') }}">
         @csrf
 
-        <!-- Email Address -->
-        <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+        {{-- Username --}}
+        <div class="field-group">
+            <label class="field-label" for="username">Usuario</label>
+            <div class="field-wrapper">
+                <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>
+                </svg>
+                <input
+                    id="username"
+                    type="text"
+                    name="username"
+                    value="{{ old('username') }}"
+                    required
+                    autofocus
+                    autocomplete="username"
+                    placeholder="Tu nombre de usuario"
+                    style="{{ $errors->has('username') ? 'border-color:#c0392b;' : '' }}"
+                >
+            </div>
+            @error('username')
+                <p class="field-error">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    {{ $message }}
+                </p>
+            @enderror
         </div>
 
         {{-- Password --}}
@@ -39,21 +59,15 @@
 
         <!-- Remember Me -->
         <div class="block mt-4">
-            <label for="remember_me" class="inline-flex items-center">
-                <input id="remember_me" type="checkbox" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" name="remember">
-                <span class="ms-2 text-sm text-gray-600">{{ __('Remember me') }}</span>
+            <label for="remember_me" class="inline-flex items-center" style="cursor:pointer;">
+                <input id="remember_me" type="checkbox" name="remember" style="accent-color:#1A56B0; width:15px; height:15px; border-radius:4px;">
+                <span style="margin-left:0.5rem; font-size:0.82rem; color:#5a6a85;">Recordar sesión</span>
             </label>
-        </div>
-
-        <div class="flex items-center justify-end mt-4">
-            @if (Route::has('password.request'))
-                <a class="link-forgot" href="{{ route('password.request') }}">¿Olvidaste tu contraseña?</a>
-            @endif
         </div>
 
         {{-- Crear cuenta --}}
         @if (Route::has('register'))
-            <div style="text-align:center; margin-bottom:1.25rem;">
+            <div style="text-align:center; margin: 1.25rem 0;">
                 <span style="font-size:0.82rem; color:#8496b0;">¿No tienes cuenta?</span>
                 <a href="{{ route('register') }}" style="font-size:0.82rem; color:#1a56b0; font-weight:600; text-decoration:none; margin-left:0.3rem;">Crear cuenta</a>
             </div>
@@ -68,12 +82,3 @@
     </form>
 
 </x-guest-layout>
-=======
-            <x-primary-button>
-                {{ __('Iniciar sesión') }}
-            </x-primary-button>
-        </div>
-
-    </form>
-</x-guest-layout>
->>>>>>> master

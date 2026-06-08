@@ -3,10 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-<<<<<<< HEAD
-=======
 use App\Models\Departamento;
->>>>>>> master
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -14,23 +11,6 @@ class DatabaseSeeder extends Seeder
 {
     use WithoutModelEvents;
 
-<<<<<<< HEAD
-    /**
-     * Seed the application's database.
-     */
-    public function run(): void
-    {
-        // User::factory(10)->create();
-        $this->call(RolesAndPermissionsSeeder::class);
-        
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
-    }
-    
-}
-=======
     public function run(): void
     {
         // 1. Roles y permisos primero
@@ -44,12 +24,12 @@ class DatabaseSeeder extends Seeder
 
         // ── Supervisor ──────────────────────────────────────────
         $supervisor = User::firstOrCreate(
-            ['username' => 'supervisor'], // Buscamos por username único en lugar de email
+            ['username' => 'supervisor'],
             [
                 'full_name'     => 'Supervisor General',
                 'password'      => bcrypt('password123'),
                 'role'          => 'supervisor',
-                'department_id' => null, // el supervisor no requiere departamento
+                'department_id' => null,
             ]
         );
         $supervisor->assignRole('supervisor');
@@ -79,4 +59,3 @@ class DatabaseSeeder extends Seeder
         $beneficiario->assignRole('beneficiario');
     }
 }
->>>>>>> master

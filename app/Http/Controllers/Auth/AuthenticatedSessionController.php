@@ -3,51 +3,20 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Auth\LoginRequest;
-<<<<<<< HEAD
-use App\Providers\RouteServiceProvider;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-=======
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
->>>>>>> master
 use Illuminate\View\View;
 
 class AuthenticatedSessionController extends Controller
 {
-<<<<<<< HEAD
-    /**
-     * Display the login view.
-     */
-=======
->>>>>>> master
     public function create(): View
     {
         return view('auth.login');
     }
 
-<<<<<<< HEAD
-    /**
-     * Handle an incoming authentication request.
-     */
-    public function store(LoginRequest $request): RedirectResponse
-    {
-        $request->authenticate();
-
-        $request->session()->regenerate();
-
-        return redirect()->intended(RouteServiceProvider::HOME);
-    }
-
-    /**
-     * Destroy an authenticated session.
-     */
-=======
     public function store(Request $request): RedirectResponse
     {
         // Validar campos
@@ -80,22 +49,13 @@ class AuthenticatedSessionController extends Controller
         };
     }
 
->>>>>>> master
     public function destroy(Request $request): RedirectResponse
     {
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
-<<<<<<< HEAD
-
-=======
->>>>>>> master
         $request->session()->regenerateToken();
 
         return redirect('/');
     }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> master
