@@ -1,58 +1,58 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800">Detalle del Curso</h2>
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            {{ $cursos->nombre }}
+        </h2>
     </x-slot>
 
-    <div class="py-8 max-w-2xl mx-auto px-4">
-        <div class="bg-white p-6 rounded shadow space-y-6">
+    <div class="max-w-2xl mx-auto py-8 px-4">
+
+        <div class="bg-white rounded shadow p-6 space-y-4">
+
             <div>
-                <h3 class="text-2xl font-bold text-gray-950 mb-1">{{ $curso->nombre }}</h3>
-                <p class="text-sm text-gray-500">Departamento: {{ $curso->departamento->name ?? '—' }}</p>
+                <span class="text-sm text-gray-500">Departamento</span>
+                <p class="font-medium">{{ $cursos->departamento->name }}</p>
             </div>
 
-            <div class="border-t pt-4 space-y-3">
-                <p><strong>Descripción:</strong> {{ $curso->descripcion ?? 'Sin descripción disponible.' }}</p>
-                <p><strong>Duración:</strong> {{ $curso->horas ? $curso->horas . ' horas' : '—' }}</p>
-                <p><strong>Fecha de Inicio:</strong> {{ $curso->fecha_inicio ?? '—' }}</p>
-                <p><strong>Fecha de Fin:</strong> {{ $curso->fecha_fin ?? '—' }}</p>
-                <p><strong>Estado:</strong>
-                    <span class="px-2 py-1 text-xs rounded-full font-semibold
-                        {{ $curso->estado === 'activo' ? 'bg-green-100 text-green-800' : '' }}
-                        {{ $curso->estado === 'borrador' ? 'bg-gray-100 text-gray-800' : '' }}
-                        {{ $curso->estado === 'finalizado' ? 'bg-blue-100 text-blue-800' : '' }}
-                        {{ $curso->estado === 'cancelado' ? 'bg-red-100 text-red-800' : '' }}
-                    ">
-                        {{ ucfirst($curso->estado) }}
-                    </span>
-                </p>
+            <div>
+                <span class="text-sm text-gray-500">Descripción</span>
+                <p>{{ $cursos->descripcion ?? '—' }}</p>
             </div>
 
-            <div class="border-t pt-4">
-                <h4 class="font-semibold text-lg text-gray-900 mb-3">Alumnos Inscritos ({{ $curso->users->count() }})</h4>
-                @if($curso->users->count() > 0)
-                    <ul class="divide-y divide-gray-200">
-                        @foreach($curso->users as $alumno)
-                            <li class="py-2 flex justify-between text-sm">
-                                <span>{{ $alumno->full_name }}</span>
-                                <span class="text-gray-500 font-medium">Estado: {{ ucfirst($alumno->pivot->estado) }}</span>
-                            </li>
-                        @endforeach
-                    </ul>
-                @else
-                    <p class="text-sm text-gray-500">No hay alumnos inscritos en este curso.</p>
-                @endif
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <span class="text-sm text-gray-500">Horas</span>
+                    <p>{{ $cursos->horas ?? '—' }}</p>
+                </div>
+                <div>
+                    <span class="text-sm text-gray-500">Estado</span>
+                    <p>{{ ucfirst($cursos->estado) }}</p>
+                </div>
             </div>
 
-            <div class="flex gap-3 border-t pt-4">
-                <a href="{{ route('admin.cursos.edit', $curso) }}"
-                   class="bg-yellow-600 text-white px-6 py-2 rounded hover:bg-yellow-700 text-center flex-1">
-                    Editar Curso
-                </a>
-                <a href="{{ route('admin.cursos.index') }}"
-                   class="px-6 py-2 border rounded hover:bg-gray-50 text-center flex-1">
-                    Volver a la Lista
-                </a>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <span class="text-sm text-gray-500">Fecha inicio</span>
+                    <p>{{ $cursos->fecha_inicio ?? '—' }}</p>
+                </div>
+                <div>
+                    <span class="text-sm text-gray-500">Fecha fin</span>
+                    <p>{{ $cursos->fecha_fin ?? '—' }}</p>
+                </div>
             </div>
+
         </div>
+
+        <div class="flex gap-3 mt-6">
+            <a href="{{ route('admin.cursos.edit', $cursos) }}"
+               class="bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700 transition">
+                Editar
+            </a>
+            <a href="{{ route('admin.cursos.index') }}"
+               class="px-5 py-2 rounded border hover:bg-gray-100 transition">
+                Volver
+            </a>
+        </div>
+
     </div>
 </x-app-layout>

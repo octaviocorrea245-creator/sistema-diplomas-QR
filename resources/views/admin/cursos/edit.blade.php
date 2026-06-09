@@ -2,9 +2,9 @@
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800">Editar Curso</h2>
     </x-slot>
-
+{{ route('admin.cursos.update', $curso) }}
     <div class="py-8 max-w-md mx-auto px-4">
-        <form action="{{ route('admin.cursos.update', $curso) }}" method="POST" class="space-y-4 bg-white p-6 rounded shadow">
+        <form id="form-editar-curso" action="{{ route('admin.cursos.update', $curso) }}" method="POST" class="space-y-4 bg-white p-6 rounded shadow">
             @csrf
             @method('PUT')
 
@@ -16,21 +16,11 @@
                 @error('nombre') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
-            {{-- Departamento --}}
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Departamento</label>
-                <select name="departamento_id" required
-                        class="mt-1 w-full border-gray-300 rounded shadow-sm focus:ring-blue-500">
-                    <option value="">-- Selecciona un departamento --</option>
-                    @foreach($departamentos as $dept)
-                        <option value="{{ $dept->id }}"
-                            {{ old('departamento_id', $curso->departamento_id) == $dept->id ? 'selected' : '' }}>
-                            {{ $dept->name }}
-                        </option>
-                    @endforeach
-                </select>
-                @error('departamento_id') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
-            </div>
+{{-- Departamento --}}
+<div>
+    <label class="block text-sm font-medium text-gray-700">Departamento</label>
+    <p class="mt-1 font-semibold text-gray-800">{{ auth()->user()->department->name }}</p>
+</div>
 
             {{-- Descripcion --}}
             <div>
@@ -77,11 +67,10 @@
                 @error('estado') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
-            <div class="flex gap-3 pt-2">
-                <button type="submit"
-                        class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
-                    Guardar Cambios
-                </button>
+<button type="submit" form="form-editar-curso"
+        class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+    Guardar Cambios
+</button>
                 <a href="{{ route('admin.cursos.index') }}"
                    class="px-6 py-2 border rounded hover:bg-gray-50 text-center flex-1">
                     Cancelar
