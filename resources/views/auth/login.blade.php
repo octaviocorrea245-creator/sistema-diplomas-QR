@@ -1,33 +1,30 @@
 <x-guest-layout>
-
-    {{-- Status --}}
-    @if (session('status'))
-        <div class="status-msg">{{ session('status') }}</div>
-    @endif
+    <!-- Session Status -->
+    <x-auth-session-status class="mb-4" :status="session('status')" />
 
     <form method="POST" action="{{ route('login') }}">
         @csrf
 
-        {{-- Email --}}
+        {{-- Username --}}
         <div class="field-group">
-            <label class="field-label" for="email">Correo electrónico</label>
+            <label class="field-label" for="username">Usuario</label>
             <div class="field-wrapper">
                 <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>
                 </svg>
                 <input
-                    id="email"
-                    type="email"
-                    name="email"
-                    value="{{ old('email') }}"
+                    id="username"
+                    type="text"
+                    name="username"
+                    value="{{ old('username') }}"
                     required
                     autofocus
                     autocomplete="username"
-                    placeholder="correo@upgp.edu.mx"
-                    style="{{ $errors->has('email') ? 'border-color:#c0392b;' : '' }}"
+                    placeholder="Tu nombre de usuario"
+                    style="{{ $errors->has('username') ? 'border-color:#c0392b;' : '' }}"
                 >
             </div>
-            @error('email')
+            @error('username')
                 <p class="field-error">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                     {{ $message }}
@@ -60,20 +57,17 @@
             @enderror
         </div>
 
-        {{-- Recordar / Olvidé --}}
-        <div class="row-between">
-            <label class="checkbox-label">
-                <input type="checkbox" name="remember" id="remember_me">
-                <span>Recordar sesión</span>
+        <!-- Remember Me -->
+        <div class="block mt-4">
+            <label for="remember_me" class="inline-flex items-center" style="cursor:pointer;">
+                <input id="remember_me" type="checkbox" name="remember" style="accent-color:#1A56B0; width:15px; height:15px; border-radius:4px;">
+                <span style="margin-left:0.5rem; font-size:0.82rem; color:#5a6a85;">Recordar sesión</span>
             </label>
-            @if (Route::has('password.request'))
-                <a class="link-forgot" href="{{ route('password.request') }}">¿Olvidaste tu contraseña?</a>
-            @endif
         </div>
 
         {{-- Crear cuenta --}}
         @if (Route::has('register'))
-            <div style="text-align:center; margin-bottom:1.25rem;">
+            <div style="text-align:center; margin: 1.25rem 0;">
                 <span style="font-size:0.82rem; color:#8496b0;">¿No tienes cuenta?</span>
                 <a href="{{ route('register') }}" style="font-size:0.82rem; color:#1a56b0; font-weight:600; text-decoration:none; margin-left:0.3rem;">Crear cuenta</a>
             </div>

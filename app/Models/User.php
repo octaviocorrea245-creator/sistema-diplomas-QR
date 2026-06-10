@@ -5,17 +5,20 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Spatie\Permission\Traits\HasRoles; // ← este es el que falta
+use Spatie\Permission\Traits\HasRoles;
+use App\Models\Departamento;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles; // ← HasRoles viene del use de arriba
+    use HasFactory, Notifiable, HasRoles;
 
     protected $fillable = [
-        'name',
+        'full_name',
+        'username',
         'email',
         'password',
+        'role',
+        'department_id',
     ];
 
     protected $hidden = [
@@ -29,5 +32,10 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function department()
+    {
+        return $this->belongsTo(Departamento::class);
     }
 }
