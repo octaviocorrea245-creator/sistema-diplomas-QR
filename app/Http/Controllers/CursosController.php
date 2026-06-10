@@ -2,124 +2,116 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Controller;
 use App\Models\Cursos;
-use App\Models\Departamento;
 use Illuminate\Http\Request;
 
 class CursosController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth');
+        $this->middleware(['auth', 'role:admin']);
     }
 
-    /**
-     * Display a listing of the resource.
-     */
-    public function index(Request $request)
+    public function index()
     {
-        $cursos = Cursos::with('departamento')->orderBy('nombre')->get();
+        $departamento_id = auth()->user()->department_id;
 
-        if ($request->routeIs('supervisor.*')) {
-            return view('supervisor.cursos.index', compact('cursos'));
-        }
+        $cursos = Cursos::where('departamento_id', $departamento_id)
+                       ->orderBy('created_at', 'desc')
+                       ->get();
 
         return view('admin.cursos.index', compact('cursos'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        $departamentos = Departamento::orderBy('name')->get();
-        return view('admin.cursos.create', compact('departamentos'));
+        // No necesita cargar departamentos, el admin ya tiene el suyo
+        return view('admin.cursos.create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        $data = $request->validate([
-            'departamento_id' => 'required|exists:departamentos,id',
-            'nombre'          => 'required|string|max:255',
-            'descripcion'     => 'nullable|string',
-            'horas'           => 'nullable|integer|min:1',
-            'fecha_inicio'    => 'nullable|date',
-            'fecha_fin'       => 'nullable|date|after_or_equal:fecha_inicio',
-            'estado'          => 'required|in:borrador,activo,finalizado,cancelado',
+        $request->validate([
+            'nombre'       => 'required|string|max:255',
+            'descripcion'  => 'nullable|string',
+            'horas'        => 'nullable|integer|min:1',
+            'fecha_inicio' => 'nullable|date_format:Y-m-d|after:1900-01-01|before:2100-01-01',
+            'fecha_fin'    => 'nullable|date_format:Y-m-d|after_or_equal:fecha_inicio|before:2100-01-01',
+            'estado'       => 'required|in:borrador,activo,finalizado,cancelado',
         ]);
 
-        Cursos::create($data);
+        Cursos::create([
+            'departamento_id' => auth()->user()->department_id, // Se asigna automáticamente
+            'nombre'          => $request->nombre,
+            'descripcion'     => $request->descripcion,
+            'horas'           => $request->horas,
+            'fecha_inicio'    => $request->fecha_inicio,
+            'fecha_fin'       => $request->fecha_fin,
+            'estado'          => $request->estado,
+        ]);
 
         return redirect()->route('admin.cursos.index')
                          ->with('success', 'Curso creado correctamente.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Request $request, Cursos $curso)
+    public function edit($id)
     {
-        $curso->load('departamento', 'users');
+        $curso = Cursos::findOrFail($id);
 
-        if ($request->routeIs('supervisor.*')) {
-            return view('supervisor.cursos.show', compact('curso'));
+        if ($curso->departamento_id != auth()->user()->department_id) {
+            abort(403);
         }
 
-        return view('admin.cursos.show', compact('curso'));
+        return view('admin.cursos.edit', compact('curso'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Cursos $curso)
+    public function update(Request $request, $id)
     {
-        $departamentos = Departamento::orderBy('name')->get();
-        return view('admin.cursos.edit', compact('curso', 'departamentos'));
-    }
+        $curso = Cursos::findOrFail($id);
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Cursos $curso)
-    {
-        $data = $request->validate([
-            'departamento_id' => 'required|exists:departamentos,id',
-            'nombre'          => 'required|string|max:255',
-            'descripcion'     => 'nullable|string',
-            'horas'           => 'nullable|integer|min:1',
-            'fecha_inicio'    => 'nullable|date',
-            'fecha_fin'       => 'nullable|date|after_or_equal:fecha_inicio',
-            'estado'          => 'required|in:borrador,activo,finalizado,cancelado',
+        if ($curso->departamento_id != auth()->user()->department_id) {
+            abort(403);
+        }
+
+        $request->validate([
+            'nombre'       => 'required|string|max:255',
+            'descripcion'  => 'nullable|string',
+            'horas'        => 'nullable|integer|min:1',
+            'fecha_inicio' => 'nullable|date_format:Y-m-d|after:1900-01-01|before:2100-01-01',
+            'fecha_fin'    => 'nullable|date_format:Y-m-d|after_or_equal:fecha_inicio|before:2100-01-01',
+            'estado'       => 'required|in:borrador,activo,finalizado,cancelado',
         ]);
 
-        $curso->update($data);
+        $curso->update($request->only([
+            'nombre', 'descripcion', 'horas',
+            'fecha_inicio', 'fecha_fin', 'estado',
+        ]));
 
         return redirect()->route('admin.cursos.index')
-                         ->with('success', 'Curso actualizado correctamente.');
+                        ->with('success', 'Curso actualizado correctamente.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Cursos $curso)
+    public function destroy($id)
     {
+        $curso = Cursos::findOrFail($id);
+
+        if ($curso->departamento_id != auth()->user()->department_id) {
+            abort(403);
+        }
+
         $curso->delete();
 
-        return redirect()->route('admin.cursos.index')
-                         ->with('success', 'Curso eliminado correctamente.');
+        return back()->with('success', 'Curso eliminado.');
     }
-
-    /**
-     * List students registered in the course.
-     */
-    public function alumnos(Request $request, Cursos $curso)
+    public function show($id)
     {
-        $curso->load('users');
-        $alumnos = $curso->users;
+        $cursos = Cursos::findOrFail($id);
 
-        return view('supervisor.cursos.alumnos.index', compact('curso', 'alumnos'));
+        if ($cursos->departamento_id != auth()->user()->department_id) {
+            abort(403);
+        }
+
+        return view('admin.cursos.show', compact('cursos'));
     }
 }

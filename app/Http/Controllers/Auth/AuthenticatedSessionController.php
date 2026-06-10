@@ -19,29 +19,24 @@ class AuthenticatedSessionController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        // Validar campos
         $request->validate([
             'username' => ['required', 'string'],
             'password' => ['required', 'string'],
         ]);
 
-        // Buscar usuario por username
         $user = User::where('username', $request->username)->first();
 
-        // Verificar si existe y la contraseña es correcta
         if (! $user || ! Hash::check($request->password, $user->password)) {
             return back()->withErrors([
                 'username' => 'Las credenciales no coinciden con nuestros registros.',
             ])->onlyInput('username');
         }
 
-        // Iniciar sesión
         Auth::login($user, $request->boolean('remember'));
 
         $request->session()->regenerate();
 
-        // Redirigir según rol
-        return match(true) {
+        return match (true) {
             $user->hasRole('supervisor')   => redirect()->route('supervisor.admins.index'),
             $user->hasRole('admin')        => redirect()->route('dashboard'),
             $user->hasRole('beneficiario') => redirect()->route('dashboard'),
@@ -54,6 +49,7 @@ class AuthenticatedSessionController extends Controller
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
+
         $request->session()->regenerateToken();
 
         return redirect('/');

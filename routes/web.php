@@ -1,22 +1,11 @@
 <?php
-
-use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Supervisor\CursosController as SupervisorCursosController;
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AlumnoController;
 use App\Http\Controllers\CursosController;
 use App\Http\Controllers\DepartamentoController;
+use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
-
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "web" middleware group. Make something great!
-|
-*/
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -32,50 +21,37 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-// ── GRUPO PRINCIPAL DEL SUPERVISOR ──────────────────────────────────────────
 Route::middleware(['auth', 'role:supervisor'])
     ->prefix('supervisor')
     ->name('supervisor.')
     ->group(function () {
 
-        // 1. Vista: resources/views/supervisor/index.blade.php
         Route::get('/', function () {
             return view('supervisor.index');
         })->name('index');
 
-        // 2. Módulo: Admins
         Route::resource('admins', AdminUserController::class)->only([
             'index', 'create', 'store', 'edit', 'update', 'destroy'
         ]);
 
-        // 3. Módulo: Alumnos
         Route::resource('alumnos', AlumnoController::class)->only([
             'index', 'show'
         ]);
 
-        // 4. Módulo: Cursos
-        Route::resource('cursos', CursosController::class)->only([
+        Route::resource('cursos', SupervisorCursosController::class)->only([
             'index', 'show'
         ]);
 
-        Route::get('cursos/{curso}/alumnos', [CursosController::class, 'alumnos'])
+        Route::get('cursos/{curso}/alumnos', [SupervisorCursosController::class, 'alumnos'])
             ->name('cursos.alumnos');
 
-        // 5. Módulo: Departamentos
         Route::resource('departamentos', DepartamentoController::class)->only([
             'index', 'create', 'store', 'edit', 'update', 'destroy'
-        ])->parameters([
-            'departamentos' => 'departamento'
-        ]);
-
+        ])->parameters(['departamentos' => 'departamento']);
     });
 
-// ── GRUPO DE ADMINISTRADORES (USUARIO NORMAL) ────────────────────────────────
-Route::middleware(['auth', 'role:admin'])
-    ->prefix('admin')
-    ->name('admin.')
-    ->group(function () {
-        Route::resource('cursos', CursosController::class);
-    });
+Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::resource('cursos', CursosController::class);
+});
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
