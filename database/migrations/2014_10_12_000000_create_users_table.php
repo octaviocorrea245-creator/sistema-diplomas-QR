@@ -10,12 +10,21 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('full_name');
-            $table->string('username')->unique();
-            $table->string('role')->default('beneficiario');
-            $table->unsignedBigInteger('department_id')->nullable();
+
+            // Datos básicos
+            $table->string('name');
+            $table->string('username', 50)->unique();
+
+            // Departamento (solo aplica a administradores)
+            $table->foreignId('departamento_id')
+                ->nullable()
+                ->constrained('departamentos')
+                ->nullOnDelete();
+
+            // Seguridad
             $table->string('password');
             $table->rememberToken();
+
             $table->timestamps();
             $table->softDeletes();
         });
