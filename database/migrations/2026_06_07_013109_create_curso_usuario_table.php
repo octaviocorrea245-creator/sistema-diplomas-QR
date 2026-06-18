@@ -19,11 +19,7 @@ return new class extends Migration
                 ->constrained('users')
                 ->cascadeOnDelete();
 
-            $table->enum('estado', [
-                'inscrito',
-                'completado',
-                'cancelado'
-            ])->default('inscrito');
+            $table->string('estado', 20)->default('inscrito');
 
             $table->timestamp('fecha_completado')
                 ->nullable();

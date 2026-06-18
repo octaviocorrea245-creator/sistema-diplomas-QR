@@ -26,12 +26,13 @@ class DepartamentoController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name'         => 'required|string|max:255|unique:departamentos,name',
+            'abreviatura'  => 'required|string|max:20',
+            'descripccion' => 'nullable|string|max:500',
+            'color'        => 'nullable|string|max:7',
         ]);
 
-        Departamento::create([
-            'name' => $request->name
-        ]);
+        Departamento::create($request->only(['name', 'abreviatura', 'descripccion', 'color']));
 
         return redirect()->route('supervisor.departamentos.index')
                          ->with('success', 'Departamento añadido correctamente.');
@@ -48,12 +49,13 @@ class DepartamentoController extends Controller
     public function update(Request $request, Departamento $departamento)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name'         => 'required|string|max:255|unique:departamentos,name,' . $departamento->id,
+            'abreviatura'  => 'required|string|max:20',
+            'descripccion' => 'nullable|string|max:500',
+            'color'        => 'nullable|string|max:7',
         ]);
 
-        $departamento->update([
-            'name' => $request->name
-        ]);
+        $departamento->update($request->only(['name', 'abreviatura', 'descripccion', 'color']));
 
         return redirect()->route('supervisor.departamentos.index')
                          ->with('success', 'Departamento actualizado correctamente.');

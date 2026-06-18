@@ -11,7 +11,7 @@ class Departamento extends Model
 
     protected $table = 'departamentos'; 
 
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'abreviatura', 'descripccion', 'color'];
 
     public function users()
     {

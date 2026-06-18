@@ -1,19 +1,21 @@
 @php
 $brand = ['abbr'=>'UPGP','color'=>'#1A56B0','bg'=>'#EEF3FB','light'=>'#93C5FD','dept'=>null];
 if (auth()->check() && auth()->user()->hasRole('admin') && auth()->user()->department) {
-    $dn = mb_strtolower(auth()->user()->department->name);
-    if (str_contains($dn, 'animac'))
-        $brand = ['abbr'=>'IAEV','color'=>'#E8960A','bg'=>'#FEF9EC','light'=>'#FFD580','dept'=>auth()->user()->department->name];
-    elseif (str_contains($dn, 'biotecn'))
-        $brand = ['abbr'=>'IBIO','color'=>'#5EA825','bg'=>'#F1F9EA','light'=>'#BBF7A0','dept'=>auth()->user()->department->name];
-    elseif (str_contains($dn, 'manufactura'))
-        $brand = ['abbr'=>'IMA', 'color'=>'#C62828','bg'=>'#FEECEB','light'=>'#FFAAAA','dept'=>auth()->user()->department->name];
-    elseif (str_contains($dn, 'comercio'))
-        $brand = ['abbr'=>'CIA', 'color'=>'#6A1B9A','bg'=>'#F5EEF8','light'=>'#D7AAEE','dept'=>auth()->user()->department->name];
-    elseif (str_contains($dn, 'datos') || str_contains($dn, 'artificial'))
-        $brand = ['abbr'=>'IDIA','color'=>'#00838F','bg'=>'#E0F7FA','light'=>'#80DEEA','dept'=>auth()->user()->department->name];
-    else
-        $brand = ['abbr'=>'TID', 'color'=>'#0277BD','bg'=>'#E1F5FE','light'=>'#87CEFA','dept'=>auth()->user()->department->name];
+    $d = auth()->user()->department;
+    $c = $d->color ?? null;
+    if ($c) {
+        $a = ltrim($c, '#');
+        $rgb = [hexdec(substr($a,0,2)), hexdec(substr($a,2,2)), hexdec(substr($a,4,2))];
+        $brand = ['abbr'=>$d->abreviatura ?? 'ADM','color'=>$c,'bg'=>'rgba('.$rgb[0].','.$rgb[1].','.$rgb[2].',0.08)','light'=>'rgba('.$rgb[0].','.$rgb[1].','.$rgb[2].',0.25)','dept'=>$d->name];
+    } else {
+        $dn = mb_strtolower($d->name);
+        if (str_contains($dn, 'animac'))      $brand = ['abbr'=>'IAEV','color'=>'#E8960A','bg'=>'#FEF9EC','light'=>'#FFD580','dept'=>$d->name];
+        elseif (str_contains($dn, 'biotecn'))  $brand = ['abbr'=>'IBIO','color'=>'#5EA825','bg'=>'#F1F9EA','light'=>'#BBF7A0','dept'=>$d->name];
+        elseif (str_contains($dn, 'manufactura')) $brand = ['abbr'=>'IMA','color'=>'#C62828','bg'=>'#FEECEB','light'=>'#FFAAAA','dept'=>$d->name];
+        elseif (str_contains($dn, 'comercio')) $brand = ['abbr'=>'CIA','color'=>'#6A1B9A','bg'=>'#F5EEF8','light'=>'#D7AAEE','dept'=>$d->name];
+        elseif (str_contains($dn, 'datos') || str_contains($dn, 'artificial')) $brand = ['abbr'=>'IDIA','color'=>'#00838F','bg'=>'#E0F7FA','light'=>'#80DEEA','dept'=>$d->name];
+        else $brand = ['abbr'=>'TID','color'=>'#0277BD','bg'=>'#E1F5FE','light'=>'#87CEFA','dept'=>$d->name];
+    }
 }
 @endphp
 <x-app-layout>

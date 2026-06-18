@@ -15,6 +15,7 @@ class Diploma extends Model
         'user_id',
         'curso_id',
         'version_plantilla_id',
+        'template_id',
         'emitido_por',
         'folio',
         'token_qr',
@@ -40,6 +41,11 @@ class Diploma extends Model
     public function versionPlantilla()
     {
         return $this->belongsTo(VersionPlantilla::class, 'version_plantilla_id');
+    }
+
+    public function template()
+    {
+        return $this->belongsTo(DiplomaTemplate::class, 'template_id');
     }
 
     public function emisor()
