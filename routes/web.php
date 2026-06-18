@@ -99,6 +99,8 @@ Route::middleware(['auth', 'role:admin'])
             ->name('templates.remove-background');
         Route::post('templates/{template}/save-elements', [App\Http\Controllers\Admin\TemplateController::class, 'saveElements'])
             ->name('templates.save-elements');
+        Route::post('templates/{template}/upload-image', [App\Http\Controllers\Admin\TemplateController::class, 'uploadImage'])
+            ->name('templates.upload-image');
 
         Route::resource('diplomas', AdminDiplomaController::class)->only([
             'index', 'create', 'store', 'show'

@@ -1,31 +1,88 @@
 <x-app-layout>
+    <x-slot name="header">
+        <h2>Alumnos</h2>
+    </x-slot>
 
-<div class="max-w-6xl mx-auto px-4 py-8">
+    <style>
+        .btn-primary {
+            display:inline-flex; align-items:center; gap:7px;
+            background: var(--brand); color:#fff; border:none;
+            padding:0.55rem 1.1rem; border-radius:9px; font-size:0.83rem; font-weight:600;
+            text-decoration:none; cursor:pointer; transition:opacity 0.15s;
+        }
+        .btn-primary:hover { opacity:0.87; color:#fff; }
 
-    <div class="flex items-center justify-between mb-6">
+        .data-card {
+            background:#fff; border-radius:14px; border:1px solid #E8EDF4;
+            box-shadow:0 1px 3px rgba(0,0,0,0.05); overflow:hidden;
+        }
+        .data-table { width:100%; border-collapse:collapse; font-size:0.875rem; }
+        .data-table thead th {
+            background:#F7F9FC; border-bottom:1px solid #E8EDF4;
+            padding:0.7rem 1.1rem; text-align:left;
+            font-size:0.72rem; font-weight:600; color:#4A6585;
+            letter-spacing:0.07em; text-transform:uppercase;
+        }
+        .data-table tbody tr { border-bottom:1px solid #F0F4FA; transition:background 0.1s; }
+        .data-table tbody tr:last-child { border-bottom:none; }
+        .data-table tbody tr:hover { background:#F7F9FC; }
+        .data-table td { padding:0.75rem 1.1rem; color:#334155; }
+
+        .badge {
+            display:inline-flex; align-items:center; padding:0.2rem 0.65rem;
+            border-radius:20px; font-size:0.72rem; font-weight:600;
+        }
+        .badge-green { background:#F0FDF4; color:#16A34A; }
+        .badge-gray  { background:#F1F5F9; color:#94A3B8; }
+
+        .search-row { display:flex; gap:8px; margin-bottom:1.5rem; }
+        .search-input {
+            flex:1; border:1px solid #DDE3EF; border-radius:9px; padding:0.55rem 1rem;
+            font-size:0.875rem; outline:none; transition:border 0.15s;
+        }
+        .search-input:focus { border-color: var(--brand); }
+
+        .action-link { font-size:0.8rem; font-weight:500; text-decoration:none; transition:opacity 0.1s; }
+        .action-link:hover { opacity:0.7; }
+        .link-view   { color: var(--brand); }
+        .link-edit   { color:#D97706; }
+        .link-delete { color:#DC2626; background:none; border:none; cursor:pointer; font-size:0.8rem; font-weight:500; padding:0; }
+        .link-delete:hover { opacity:0.7; }
+
+        .empty-state { text-align:center; padding:3rem 1rem; color:#94A3B8; }
+        .empty-state svg { margin:0 auto 1rem; display:block; }
+
+        .alert-success {
+            background:#F0FDF4; border:1px solid #BBF7D0; color:#15803D;
+            border-radius:10px; padding:0.75rem 1.1rem; font-size:0.875rem; margin-bottom:1.25rem;
+        }
+    </style>
+
+    @if(session('success'))
+        <div class="alert-success">{{ session('success') }}</div>
+    @endif
+
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem;">
         <div>
-            <h1 class="text-2xl font-semibold text-gray-800">Alumnos</h1>
-            <p class="text-sm text-gray-500 mt-1">{{ auth()->user()->department->name ?? 'Tu departamento' }}</p>
+            <p style="font-size:0.8rem; color:#64748b; margin:0.2rem 0 0;">{{ auth()->user()->department->name ?? 'Tu departamento' }}</p>
         </div>
-        <a href="{{ route('admin.alumnos.create') }}"
-           class="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-indigo-700 transition">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <a href="{{ route('admin.alumnos.create') }}" class="btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:15px;height:15px;">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
             </svg>
             Nuevo Alumno
         </a>
     </div>
 
-    <form method="GET" action="{{ route('admin.alumnos.index') }}" class="mb-6">
-        <div class="flex gap-2">
+    <form method="GET" action="{{ route('admin.alumnos.index') }}">
+        <div class="search-row">
             <input type="text" name="buscar" value="{{ request('buscar') }}"
-                   placeholder="Buscar por nombre…"
-                   class="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
-            <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-indigo-700 transition">
-                Buscar
-            </button>
+                   class="search-input" placeholder="Buscar por nombre…">
+            <button type="submit" class="btn-primary">Buscar</button>
             @if(request('buscar'))
-                <a href="{{ route('admin.alumnos.index') }}" class="px-4 py-2 rounded-lg text-sm border border-gray-300 hover:bg-gray-50 transition">
+                <a href="{{ route('admin.alumnos.index') }}"
+                   style="display:inline-flex; align-items:center; padding:0.55rem 1rem; border-radius:9px; border:1px solid #DDE3EF; font-size:0.83rem; color:#64748b; text-decoration:none; transition:background 0.1s;"
+                   onmouseover="this.style.background='#F7F9FC'" onmouseout="this.style.background='transparent'">
                     Limpiar
                 </a>
             @endif
@@ -33,47 +90,64 @@
     </form>
 
     @if($alumnos->isEmpty())
-        <div class="text-center py-16 text-gray-400">
-            <p class="text-lg">No se encontraron alumnos.</p>
-            @if(request('buscar'))
-                <p class="text-sm mt-1">Intenta con otro término de búsqueda.</p>
-            @endif
+        <div class="data-card">
+            <div class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--brand-light)" stroke-width="1.3" style="width:48px;height:48px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5z"/>
+                </svg>
+                @if(request('buscar'))
+                    <p style="font-size:0.95rem; margin-bottom:0.25rem;">Sin resultados para "{{ request('buscar') }}"</p>
+                    <p style="font-size:0.82rem;">Intenta con otro término.</p>
+                @else
+                    <p style="font-size:0.95rem; margin-bottom:0.25rem;">No hay alumnos registrados</p>
+                    <p style="font-size:0.82rem;">Agrega el primero con el botón de arriba.</p>
+                @endif
+            </div>
         </div>
     @else
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <table class="w-full text-sm">
+        <div class="data-card">
+            <table class="data-table">
                 <thead>
-                    <tr class="bg-gray-50 border-b border-gray-200 text-left text-gray-500 uppercase text-xs tracking-wide">
-                        <th class="px-5 py-3">Nombre</th>
-                        <th class="px-5 py-3">Cursos inscritos</th>
-                        <th class="px-5 py-3">Completados</th>
-                        <th class="px-5 py-3 text-right">Acciones</th>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Usuario</th>
+                        <th>Cursos inscritos</th>
+                        <th>Completados</th>
+                        <th style="text-align:right;">Acciones</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100">
+                <tbody>
                     @foreach($alumnos as $alumno)
                         @php
                             $total       = $alumno->cursos->count();
                             $completados = $alumno->cursos->where('pivot.estado', 'completado')->count();
                         @endphp
-                        <tr class="hover:bg-gray-50 transition">
-                            <td class="px-5 py-3 font-medium text-gray-800">{{ $alumno->full_name }}</td>
-                            <td class="px-5 py-3 text-gray-600">{{ $total }}</td>
-                            <td class="px-5 py-3">
-                                <span class="{{ $completados > 0 ? 'text-green-600 font-medium' : 'text-gray-400' }}">
-                                    {{ $completados }}
-                                </span>
+                        <tr>
+                            <td>
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <div style="width:34px; height:34px; border-radius:50%; background: var(--brand-bg);
+                                                display:flex; align-items:center; justify-content:center;
+                                                font-size:0.8rem; font-weight:700; color: var(--brand); flex-shrink:0;">
+                                        {{ strtoupper(substr($alumno->full_name, 0, 1)) }}
+                                    </div>
+                                    <span style="font-weight:500; color:#1E293B;">{{ $alumno->full_name }}</span>
+                                </div>
                             </td>
-                            <td class="px-5 py-3 text-right">
-                                <div class="flex gap-3 justify-end">
-                                    <a href="{{ route('admin.alumnos.show', $alumno) }}"
-                                       class="text-indigo-600 hover:text-indigo-800 font-medium">Ver</a>
-                                    <a href="{{ route('admin.alumnos.edit', $alumno) }}"
-                                       class="text-yellow-600 hover:text-yellow-800 font-medium">Editar</a>
+                            <td style="color:#64748b; font-size:0.82rem;">{{ $alumno->username ?? '—' }}</td>
+                            <td>
+                                <span class="badge {{ $total > 0 ? 'badge-green' : 'badge-gray' }}">{{ $total }}</span>
+                            </td>
+                            <td>
+                                <span class="badge {{ $completados > 0 ? 'badge-green' : 'badge-gray' }}">{{ $completados }}</span>
+                            </td>
+                            <td style="text-align:right;">
+                                <div style="display:flex; gap:1rem; justify-content:flex-end; align-items:center;">
+                                    <a href="{{ route('admin.alumnos.show', $alumno) }}" class="action-link link-view">Ver</a>
+                                    <a href="{{ route('admin.alumnos.edit', $alumno) }}" class="action-link link-edit">Editar</a>
                                     <form action="{{ route('admin.alumnos.destroy', $alumno) }}" method="POST"
-                                          onsubmit="return confirm('¿Eliminar a \"{{ $alumno->full_name }}\"? Esta acción no se puede deshacer.')" class="inline">
+                                          onsubmit="return confirm('¿Eliminar a «{{ $alumno->full_name }}»?')" style="margin:0;">
                                         @csrf @method('DELETE')
-                                        <button type="submit" class="text-red-600 hover:text-red-800 font-medium">Eliminar</button>
+                                        <button type="submit" class="link-delete">Eliminar</button>
                                     </form>
                                 </div>
                             </td>
@@ -82,10 +156,7 @@
                 </tbody>
             </table>
         </div>
-        <div class="mt-4">
-            {{ $alumnos->links() }}
-        </div>
+        <div style="margin-top:1rem;">{{ $alumnos->links() }}</div>
     @endif
-</div>
 
 </x-app-layout>

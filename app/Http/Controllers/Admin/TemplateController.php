@@ -100,7 +100,8 @@ class TemplateController extends Controller
         abort_unless($template->curso->departamento_id === $this->departamentoId(), 403);
 
         if ($template->background_image) {
-            Storage::disk('public')->delete($template->background_image);
+            $abs = public_path($template->background_image);
+            if (file_exists($abs)) @unlink($abs);
         }
 
         $template->elements()->delete();
@@ -133,20 +134,27 @@ class TemplateController extends Controller
     {
         abort_unless($template->curso->departamento_id === $this->departamentoId(), 403);
 
-        $data = $request->validate([
+        $request->validate([
             'image' => 'required|image|mimes:jpg,jpeg,png,webp|max:10240',
         ]);
 
+        // Remove old file from public dir
         if ($template->background_image) {
-            Storage::disk('public')->delete($template->background_image);
+            $old = public_path($template->background_image);
+            if (file_exists($old)) @unlink($old);
         }
 
-        $path = $request->file('image')->store('templates', 'public');
+        $file     = $request->file('image');
+        $filename = 'bg_' . $template->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+        $dir      = public_path('uploads/templates');
+        if (!is_dir($dir)) mkdir($dir, 0755, true);
+        $file->move($dir, $filename);
 
-        $template->update(['background_image' => $path]);
+        $relativePath = 'uploads/templates/' . $filename;
+        $template->update(['background_image' => $relativePath]);
 
         return response()->json([
-            'url' => Storage::url($path),
+            'url' => asset($relativePath),
         ]);
     }
 
@@ -155,11 +163,34 @@ class TemplateController extends Controller
         abort_unless($template->curso->departamento_id === $this->departamentoId(), 403);
 
         if ($template->background_image) {
-            Storage::disk('public')->delete($template->background_image);
+            $abs = public_path($template->background_image);
+            if (file_exists($abs)) @unlink($abs);
             $template->update(['background_image' => null]);
         }
 
         return response()->json(['success' => true]);
+    }
+
+    public function uploadImage(Request $request, DiplomaTemplate $template)
+    {
+        abort_unless($template->curso->departamento_id === $this->departamentoId(), 403);
+
+        $request->validate([
+            'image' => 'required|image|mimes:jpg,jpeg,png,webp,gif|max:10240',
+        ]);
+
+        $file     = $request->file('image');
+        $filename = 'img_' . uniqid() . '.' . $file->getClientOriginalExtension();
+        $dir      = public_path('uploads/templates/images');
+        if (!is_dir($dir)) mkdir($dir, 0755, true);
+        $file->move($dir, $filename);
+
+        $relativePath = 'uploads/templates/images/' . $filename;
+
+        return response()->json([
+            'url'  => asset($relativePath),
+            'path' => $relativePath,
+        ]);
     }
 
     public function saveElements(Request $request, DiplomaTemplate $template)
