@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "../../.."
+		},
+		{
+			"path": "../../../../../Desktop/DiplomasQR/vendor"
+		},
+		{
+			"path": "../../../../../Desktop/DiplomasQR/node_modules"
+		}
+	],
+	"settings": {}
+}
