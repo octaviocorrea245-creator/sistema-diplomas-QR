@@ -5,6 +5,17 @@
         </h2>
     </x-slot>
 
+    <style>
+        .toast { padding:0.85rem 1.1rem; border-radius:10px; font-size:0.875rem; font-weight:500; box-shadow:0 4px 16px rgba(0,0,0,0.12); display:flex; align-items:center; gap:10px; animation:toast-in 0.3s ease; }
+        .toast-success { background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; }
+        .toast-error { background:#fef2f2; border:1px solid #fecaca; color:#991b1b; }
+        @keyframes toast-in { from { opacity:0; transform:translateX(100px); } to { opacity:1; transform:translateX(0); } }
+        .toast-out { animation:toast-out 0.3s ease forwards; }
+        @keyframes toast-out { from { opacity:1; transform:translateX(0); } to { opacity:0; transform:translateX(100px); } }
+    </style>
+
+    <div id="toast-container" style="position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;max-width:400px;"></div>
+
     <div class="max-w-3xl mx-auto py-8 px-4">
 
         {{-- Info del curso --}}
@@ -116,13 +127,18 @@
             @if($template)
                 <div class="p-5">
                     <div class="flex gap-5">
-                        @if($template->background_image)
-                            <div class="shrink-0 w-36 h-24 rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
+                        <div class="shrink-0 w-36 h-24 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 relative group">
+                            @if($template->background_image)
                                 <img src="{{ Storage::url($template->background_image) }}" class="w-full h-full object-cover">
-                            </div>
-                        @else
-                            <div class="shrink-0 w-36 h-24 rounded-lg border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center text-gray-400 text-xs">Sin fondo</div>
-                        @endif
+                            @else
+                                <div class="w-full h-full flex items-center justify-center text-gray-400 text-xs">Sin fondo</div>
+                            @endif
+                            <a href="{{ route('admin.templates.editor', $template) }}"
+                               style="position:absolute;top:4px;left:4px;padding:3px 8px;font-size:0.7rem;border-radius:4px;background:#1a56b0;color:#fff;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:4px;z-index:10;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125"/></svg>
+                                Editar
+                            </a>
+                        </div>
                         <div class="min-w-0 flex-1">
                             <h4 class="font-medium text-gray-900 truncate">{{ $template->nombre }}</h4>
                             <div class="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-xs text-gray-500">
@@ -131,11 +147,6 @@
                                 <span>Creado {{ $template->created_at->diffForHumans() }}</span>
                             </div>
                             <div class="flex flex-wrap gap-2 mt-3">
-                                <a href="{{ route('admin.templates.editor', $template) }}"
-                                   class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125"/></svg>
-                                    Diseñar
-                                </a>
                                 <a href="{{ route('admin.templates.show', $template) }}"
                                    class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-white text-gray-700 border border-gray-200 rounded-md hover:bg-gray-50 transition">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
@@ -172,4 +183,28 @@
         </div>
 
     </div>
+
+    <script>
+        function showToast(type, message) {
+            var container = document.getElementById('toast-container');
+            var toast = document.createElement('div');
+            toast.className = 'toast toast-' + type;
+            toast.innerHTML = '<span>' + message + '</span>';
+            container.appendChild(toast);
+            setTimeout(function() {
+                toast.classList.add('toast-out');
+                setTimeout(function() { toast.remove(); }, 300);
+            }, 4000);
+        }
+
+        @if(session('toast'))
+            showToast('{{ session('toast')['type'] }}', '{{ session('toast')['message'] }}');
+        @endif
+        @if(session('success'))
+            showToast('success', '{{ session('success') }}');
+        @endif
+        @if(session('error'))
+            showToast('error', '{{ session('error') }}');
+        @endif
+    </script>
 </x-app-layout>

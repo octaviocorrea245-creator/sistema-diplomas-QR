@@ -53,7 +53,10 @@ class MassDiplomaController extends Controller
 
         $template = DiplomaTemplate::findOrFail($data['template_id']);
         abort_unless($template->curso->departamento_id === $this->departamentoId(), 403);
-        abort_unless($template->elements()->exists(), 400, 'La plantilla no tiene elementos. Diseñala primero.');
+        if (!$template->elements()->exists()) {
+            return redirect()->route('admin.cursos.show', $curso->id)
+                ->with('toast', ['type' => 'error', 'message' => 'La plantilla no tiene elementos. Diseñala primero.']);
+        }
 
         $alumnos = $curso->alumnos()
             ->wherePivot('estado', 'completado')
