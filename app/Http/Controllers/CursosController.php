@@ -13,13 +13,22 @@ class CursosController extends Controller
         $this->middleware(['auth', 'role:admin']);
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $departamento_id = auth()->user()->department_id;
 
-        $cursos = Cursos::where('departamento_id', $departamento_id)
-                       ->orderBy('created_at', 'desc')
-                       ->get();
+        $query = Cursos::where('departamento_id', $departamento_id);
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where('nombre', 'like', "%{$search}%");
+        }
+
+        if ($request->filled('estado')) {
+            $query->where('estado', $request->estado);
+        }
+
+        $cursos = $query->with('template')->orderBy('created_at', 'desc')->get();
 
         return view('admin.cursos.index', compact('cursos'));
     }
@@ -106,12 +115,21 @@ class CursosController extends Controller
     }
     public function show($id)
     {
-        $cursos = Cursos::findOrFail($id);
+        $cursos = Cursos::with('template.elements')->findOrFail($id);
 
         if ($cursos->departamento_id != auth()->user()->department_id) {
             abort(403);
         }
 
-        return view('admin.cursos.show', compact('cursos'));
+        $alumnosQuery = $cursos->alumnos();
+        $stats = [
+            'total'      => (clone $alumnosQuery)->count(),
+            'inscrito'   => (clone $alumnosQuery)->wherePivot('estado', 'inscrito')->count(),
+            'en_curso'   => (clone $alumnosQuery)->wherePivot('estado', 'en_curso')->count(),
+            'completado' => (clone $alumnosQuery)->wherePivot('estado', 'completado')->count(),
+            'baja'       => (clone $alumnosQuery)->wherePivot('estado', 'baja')->count(),
+        ];
+
+        return view('admin.cursos.show', compact('cursos', 'stats'));
     }
 }

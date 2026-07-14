@@ -11,11 +11,15 @@ class Departamento extends Model
 
     protected $table = 'departamentos'; 
 
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'abreviatura', 'descripccion', 'color'];
 
     public function users()
     {
-
         return $this->hasMany(User::class, 'department_id');
+    }
+
+    public function firmantes()
+    {
+        return $this->hasMany(Firmante::class, 'departamento_id');
     }
 }

@@ -15,7 +15,8 @@ public function up(): void
             $table->id();
             $table->string('name')->unique();
             $table->string('abreviatura');
-            $table->string('descripccion');
+            $table->string('descripccion')->nullable();
+            $table->string('color', 7)->nullable();
             $table->timestamps();
         });
     }
