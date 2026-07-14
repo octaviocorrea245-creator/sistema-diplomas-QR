@@ -4,25 +4,38 @@ namespace App\Http\Controllers;
 
 use App\Models\Diploma;
 use App\Services\DiplomaRenderer;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\PdfGenerator;
 
 class VerificarDiplomaController extends Controller
 {
     public function show(string $token)
     {
         $diploma = Diploma::where('token_qr', $token)
-            ->with(['alumno', 'curso.departamento', 'versionPlantilla.plantilla', 'emisor', 'template.elements'])
+            ->with(['alumno', 'curso.departamento', 'versionPlantilla.plantilla', 'emisor', 'template.elements', 'firmante'])
             ->firstOrFail();
+
+        $sessionKey  = 'verificado_' . $diploma->id;
+        $ultimaVisita = session($sessionKey);
+        $sesionValida = $ultimaVisita && now()->diffInMinutes($ultimaVisita) < 10;
+
+        session([$sessionKey => now()]);
+
+        $tiempoRestante = $sesionValida
+            ? max(0, 600 - now()->diffInSeconds($ultimaVisita))
+            : 600;
 
         $diplomaHtml = null;
         if ($diploma->template && $diploma->template->elements->isNotEmpty()) {
-            $renderer = app(DiplomaRenderer::class);
-            $diplomaHtml = $renderer->renderHtml($diploma->template, $diploma);
+            $renderer    = app(DiplomaRenderer::class);
+            $diplomaHtml = $renderer->renderHtml($diploma->template, $diploma, false);
         }
 
-        return view('public.verificar', compact('diploma', 'diplomaHtml'));
+        return view('public.verificar', compact('diploma', 'diplomaHtml', 'sesionValida', 'tiempoRestante'));
     }
 
+    /**
+     * Muestra el PDF del diploma en el navegador (inline).
+     */
     public function imagen(string $token)
     {
         $diploma = Diploma::where('token_qr', $token)
@@ -31,15 +44,17 @@ class VerificarDiplomaController extends Controller
 
         abort_unless($diploma->template && $diploma->template->elements->isNotEmpty(), 404, 'No hay plantilla');
 
-        $renderer = app(DiplomaRenderer::class);
-        $html = $renderer->renderHtml($diploma->template, $diploma);
+        $pdfContent = app(PdfGenerator::class)->generate($diploma->template, $diploma);
 
-        $pdf = Pdf::loadHTML($html)->setPaper([0, 0, $diploma->template->canvas_width, $diploma->template->canvas_height]);
-        $pdf->setOptions(['dpi' => 150, 'defaultFont' => 'sans-serif']);
-
-        return $pdf->stream('diploma-' . $diploma->folio . '.pdf');
+        return response($pdfContent, 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="diploma-' . $diploma->folio . '.pdf"',
+        ]);
     }
 
+    /**
+     * Descarga el PDF del diploma.
+     */
     public function pdf(string $token)
     {
         $diploma = Diploma::where('token_qr', $token)
@@ -48,12 +63,11 @@ class VerificarDiplomaController extends Controller
 
         abort_unless($diploma->template && $diploma->template->elements->isNotEmpty(), 404, 'No hay plantilla');
 
-        $renderer = app(DiplomaRenderer::class);
-        $html = $renderer->renderHtml($diploma->template, $diploma);
+        $pdfContent = app(PdfGenerator::class)->generate($diploma->template, $diploma);
 
-        $pdf = Pdf::loadHTML($html)->setPaper([0, 0, $diploma->template->canvas_width, $diploma->template->canvas_height]);
-        $pdf->setOptions(['dpi' => 150, 'defaultFont' => 'sans-serif']);
-
-        return $pdf->download('diploma-' . $diploma->folio . '.pdf');
+        return response($pdfContent, 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="diploma-' . $diploma->folio . '.pdf"',
+        ]);
     }
 }

@@ -72,16 +72,22 @@ Route::middleware(['auth', 'role:admin'])
 
         Route::resource('cursos', CursosController::class);
 
+        Route::get('alumnos/importar',      [AdminAlumnoController::class, 'importForm'])->name('alumnos.importar');
+        Route::post('alumnos/importar',     [AdminAlumnoController::class, 'import'])->name('alumnos.importar.store');
+        Route::get('alumnos/plantilla-csv', [AdminAlumnoController::class, 'downloadTemplate'])->name('alumnos.plantilla');
         Route::resource('alumnos', AdminAlumnoController::class)->parameters(['alumnos' => 'alumno']);
 
         Route::prefix('cursos/{curso}/alumnos')->name('cursos.alumnos.')->group(function () {
-            Route::get('/',              [AdminCursoAlumnoController::class, 'index'])  ->name('index');
-            Route::get('/create',        [AdminCursoAlumnoController::class, 'create']) ->name('create');
-            Route::post('/',             [AdminCursoAlumnoController::class, 'store'])  ->name('store');
-            Route::get('/{alumno}',      [AdminCursoAlumnoController::class, 'show'])   ->name('show');
-            Route::get('/{alumno}/edit', [AdminCursoAlumnoController::class, 'edit'])   ->name('edit');
-            Route::put('/{alumno}',      [AdminCursoAlumnoController::class, 'update']) ->name('update');
-            Route::delete('/{alumno}',   [AdminCursoAlumnoController::class, 'destroy'])->name('destroy');
+            Route::get('/',              [AdminCursoAlumnoController::class, 'index'])          ->name('index');
+            Route::get('/create',        [AdminCursoAlumnoController::class, 'create'])         ->name('create');
+            Route::post('/',             [AdminCursoAlumnoController::class, 'store'])          ->name('store');
+            Route::get('/importar',      [AdminCursoAlumnoController::class, 'importForm'])     ->name('importar');
+            Route::post('/importar',     [AdminCursoAlumnoController::class, 'import'])         ->name('importar.store');
+            Route::get('/plantilla-csv', [AdminCursoAlumnoController::class, 'downloadTemplate'])->name('plantilla');
+            Route::get('/{alumno}',      [AdminCursoAlumnoController::class, 'show'])           ->name('show');
+            Route::get('/{alumno}/edit', [AdminCursoAlumnoController::class, 'edit'])           ->name('edit');
+            Route::put('/{alumno}',      [AdminCursoAlumnoController::class, 'update'])         ->name('update');
+            Route::delete('/{alumno}',   [AdminCursoAlumnoController::class, 'destroy'])        ->name('destroy');
         });
 
         Route::resource('plantillas', AdminPlantillaController::class)->only([
@@ -101,10 +107,10 @@ Route::middleware(['auth', 'role:admin'])
             ->name('templates.save-elements');
         Route::post('templates/{template}/upload-image', [App\Http\Controllers\Admin\TemplateController::class, 'uploadImage'])
             ->name('templates.upload-image');
-
-        Route::resource('diplomas', AdminDiplomaController::class)->only([
-            'index', 'create', 'store', 'show'
-        ]);
+        Route::post('templates/crear-para-curso/{curso}', [App\Http\Controllers\Admin\TemplateController::class, 'createForCourse'])
+            ->name('templates.create-for-course');
+        Route::get('templates/{template}/preview', [App\Http\Controllers\Admin\TemplateController::class, 'preview'])
+            ->name('templates.preview');
 
         Route::prefix('diplomas/masiva')->name('diplomas.mass.')->group(function () {
             Route::get('/', [App\Http\Controllers\Admin\MassDiplomaController::class, 'create'])
@@ -117,7 +123,32 @@ Route::middleware(['auth', 'role:admin'])
                 ->name('download');
             Route::get('descargar-todos/{curso}', [App\Http\Controllers\Admin\MassDiplomaController::class, 'downloadAll'])
                 ->name('download-all');
+            Route::get('descargar-combinado/{curso}', [App\Http\Controllers\Admin\MassDiplomaController::class, 'downloadCombined'])
+                ->name('download-combined');
+            Route::post('regenerar/{curso}', [App\Http\Controllers\Admin\MassDiplomaController::class, 'regenerate'])
+                ->name('regenerate');
         });
+
+        Route::resource('diplomas', AdminDiplomaController::class)->only([
+            'index', 'create', 'store', 'show'
+        ]);
+
+        // ── Firmantes (gestión de e.firma) ──────────────────────────────────
+        Route::resource('firmantes', App\Http\Controllers\Admin\FirmanteController::class)->only([
+            'index', 'create', 'store', 'show', 'edit', 'update', 'destroy'
+        ]);
+        Route::post('firmantes/{firmante}/toggle-activo',
+            [App\Http\Controllers\Admin\FirmanteController::class, 'toggleActivo'])
+            ->name('firmantes.toggle-activo');
+        Route::get('firmantes/{firmante}/firmar/{diploma}',
+            [App\Http\Controllers\Admin\FirmanteController::class, 'firmarForm'])
+            ->name('firmantes.firmar.form');
+        Route::post('firmantes/{firmante}/firmar/{diploma}',
+            [App\Http\Controllers\Admin\FirmanteController::class, 'firmar'])
+            ->name('firmantes.firmar');
+        Route::post('firmantes/{firmante}/firmar-masivo',
+            [App\Http\Controllers\Admin\FirmanteController::class, 'firmarMasivo'])
+            ->name('firmantes.firmar-masivo');
 
         Route::get('alumnos-por-curso/{curso}', [AdminDiplomaController::class, 'alumnosPorCurso'])->name('alumnos-por-curso');
         Route::get('versiones-por-plantilla/{plantilla}', [AdminDiplomaController::class, 'versionesPorPlantilla'])->name('versiones-por-plantilla');

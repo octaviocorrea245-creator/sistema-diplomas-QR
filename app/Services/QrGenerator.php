@@ -2,39 +2,52 @@
 
 namespace App\Services;
 
+use chillerlan\QRCode\Common\EccLevel;
+use chillerlan\QRCode\Output\QRMarkupSVG;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
 use Illuminate\Support\Facades\Storage;
 
 class QrGenerator
 {
+    /**
+     * Genera un QR como SVG y lo guarda en disco (storage/app/public/).
+     * No requiere extensión GD.
+     */
     public function generate(string $data, string $outputPath): string
     {
-        $options = new QROptions([
-            'outputType'   => QRCode::OUTPUT_IMAGE_PNG,
-            'eccLevel'     => QRCode::ECC_M,
-            'scale'        => 12,
-            'imageBase64'  => false,
-        ]);
+        $svg = $this->renderSvg($data);
 
-        $qrcode = new QRCode($options);
-        $pngData = $qrcode->render($data);
+        // Guardamos SVG en lugar de PNG (sin GD requerido)
+        $svgPath = preg_replace('/\.png$/i', '.svg', $outputPath);
+        Storage::disk('public')->put($svgPath, $svg);
 
-        Storage::disk('public')->put($outputPath, base64_decode($pngData));
-
-        return Storage::url($outputPath);
+        return Storage::url($svgPath);
     }
 
+    /**
+     * Genera un QR como SVG data-URI listo para usar en <img src="...">.
+     * No requiere extensión GD.
+     */
     public function generateBase64(string $data): string
     {
+        $svg = $this->renderSvg($data);
+        return 'data:image/svg+xml;base64,' . base64_encode($svg);
+    }
+
+    // ─── privado ─────────────────────────────────────────────────────────────
+
+    private function renderSvg(string $data): string
+    {
         $options = new QROptions([
-            'outputType'  => QRCode::OUTPUT_IMAGE_PNG,
-            'eccLevel'    => QRCode::ECC_M,
-            'scale'       => 12,
-            'imageBase64' => true,
+            'outputInterface' => QRMarkupSVG::class,
+            'eccLevel'        => EccLevel::M,
+            'outputBase64'    => false,
+            // Colores SVG
+            'svgDefs'         => '',
+            'svgOpacity'      => 1.0,
         ]);
 
-        $qrcode = new QRCode($options);
-        return $qrcode->render($data);
+        return (new QRCode($options))->render($data);
     }
 }

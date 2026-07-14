@@ -9,6 +9,7 @@ use App\Models\Department;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class CursoAlumnoController extends Controller
@@ -144,6 +145,140 @@ class CursoAlumnoController extends Controller
         return redirect()
             ->route('admin.cursos.alumnos.show', [$curso, $alumno])
             ->with('success', 'Inscripción actualizada.');
+    }
+
+    // Formulario de importación masiva CSV
+    public function importForm(Cursos $curso)
+    {
+        $this->verificarCurso($curso);
+        return view('admin.cursos.alumnos.import', compact('curso'));
+    }
+
+    // Procesa el CSV y crea/inscribe alumnos
+    public function import(Request $request, Cursos $curso)
+    {
+        $this->verificarCurso($curso);
+
+        $request->validate([
+            'archivo' => ['required', 'file', 'mimes:csv,txt', 'max:4096'],
+        ], [
+            'archivo.required' => 'Selecciona un archivo CSV.',
+            'archivo.mimes'    => 'El archivo debe ser .csv o .txt.',
+            'archivo.max'      => 'El archivo no puede superar 4 MB.',
+        ]);
+
+        $handle = fopen($request->file('archivo')->getRealPath(), 'r');
+
+        // Leer encabezado y normalizar (quitar BOM si existe)
+        $rawHeader = fgetcsv($handle);
+        $rawHeader[0] = ltrim($rawHeader[0], "\xEF\xBB\xBF"); // BOM UTF-8
+        $header = array_map(fn($h) => strtolower(trim($h)), $rawHeader);
+
+        $estadosValidos = CursoUsuario::estados();
+        $res = ['creados' => [], 'inscritos' => [], 'actualizados' => [], 'errores' => []];
+        $fila = 1;
+
+        while (($row = fgetcsv($handle)) !== false) {
+            $fila++;
+            if (count($row) < count($header)) {
+                $row = array_pad($row, count($header), '');
+            }
+            $data = array_combine($header, $row);
+
+            $nombre   = trim($data['nombre_completo'] ?? $data['nombre'] ?? '');
+            $username = trim($data['username'] ?? $data['usuario'] ?? '');
+            $estado   = trim($data['estado'] ?? 'inscrito');
+            $fecha    = trim($data['fecha_completado'] ?? '') ?: null;
+
+            if ($nombre === '') {
+                $res['errores'][] = "Fila {$fila}: nombre_completo es obligatorio.";
+                continue;
+            }
+
+            if (!in_array($estado, $estadosValidos)) {
+                $estado = 'inscrito';
+            }
+
+            // Buscar usuario: primero por username, luego por nombre exacto en el dpto
+            $alumno = null;
+            if ($username !== '') {
+                $alumno = User::where('username', $username)->first();
+            }
+            if (!$alumno) {
+                $alumno = User::where('full_name', $nombre)
+                    ->where('department_id', $curso->departamento_id)
+                    ->first();
+            }
+
+            $esNuevo = false;
+            if (!$alumno) {
+                // Generar username único si no viene en el CSV
+                $baseUsername = $username ?: Str::slug($nombre, '');
+                $baseUsername = $baseUsername ?: 'alumno';
+                $uUsername    = $baseUsername;
+                $suffix       = 1;
+                while (User::where('username', $uUsername)->exists()) {
+                    $uUsername = $baseUsername . $suffix++;
+                }
+
+                $alumno = User::create([
+                    'full_name'     => $nombre,
+                    'username'      => $uUsername,
+                    'password'      => Hash::make('Cambiar@' . rand(1000, 9999)),
+                    'role'          => 'beneficiario',
+                    'department_id' => $curso->departamento_id,
+                ]);
+                $alumno->assignRole('Beneficiario');
+                $esNuevo = true;
+            }
+
+            $pivotData = ['estado' => $estado, 'fecha_completado' => $fecha];
+
+            if ($curso->alumnos()->where('user_id', $alumno->id)->exists()) {
+                $curso->alumnos()->updateExistingPivot($alumno->id, $pivotData);
+                $res['actualizados'][] = $nombre;
+            } else {
+                $curso->alumnos()->attach($alumno->id, $pivotData);
+                $res[$esNuevo ? 'creados' : 'inscritos'][] = $nombre;
+            }
+        }
+
+        fclose($handle);
+
+        // Construir mensaje de resumen
+        $partes = [];
+        if (count($res['creados']))     $partes[] = count($res['creados']) . ' alumno(s) nuevo(s) creado(s)';
+        if (count($res['inscritos']))   $partes[] = count($res['inscritos']) . ' inscrito(s)';
+        if (count($res['actualizados'])) $partes[] = count($res['actualizados']) . ' actualizado(s)';
+        if (count($res['errores']))     $partes[] = count($res['errores']) . ' error(es)';
+
+        $mensaje = 'Importación completada: ' . implode(', ', $partes) . '.';
+
+        return redirect()
+            ->route('admin.cursos.alumnos.index', $curso)
+            ->with('success', $mensaje)
+            ->with('import_errores', $res['errores']);
+    }
+
+    // Descarga la plantilla CSV de ejemplo
+    public function downloadTemplate(Cursos $curso)
+    {
+        $this->verificarCurso($curso);
+
+        $callback = function () {
+            $out = fopen('php://output', 'w');
+            fputs($out, "\xEF\xBB\xBF"); // BOM para que Excel abra en UTF-8
+            fputcsv($out, ['nombre_completo', 'username', 'estado', 'fecha_completado']);
+            fputcsv($out, ['Juan García López',  'jgarcia', 'completado', '2026-06-15']);
+            fputcsv($out, ['María Pérez Torres', 'mperez',  'inscrito',   '']);
+            fputcsv($out, ['Carlos Ruiz',        '',        'en_curso',   '']);
+            fclose($out);
+        };
+
+        return response()->stream($callback, 200, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="plantilla_alumnos.csv"',
+        ]);
     }
 
     // Dar de baja al alumno del curso (no elimina, cambia estado)

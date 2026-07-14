@@ -383,12 +383,7 @@
                         </div>
                         <span>Texto</span>
                     </div>
-                    <div draggable="true" ondragstart="onDragStart(event, 'variable')" onclick="addVariable()" class="el-card">
-                        <div class="el-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2-8h.01M15 16h.01M12 8h.01M9 20h6a2 2 0 002-2V6a2 2 0 00-2-2H9a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                        </div>
-                        <span>Variable</span>
-                    </div>
+
                     <div draggable="true" ondragstart="onDragStart(event, 'qr')" onclick="addQr()" class="el-card">
                         <div class="el-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM3.75 15.375c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM15 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5z"/></svg>
@@ -413,6 +408,12 @@
                         </div>
                         <span>Imagen</span>
                     </div>
+                    <div draggable="true" ondragstart="onDragStart(event, 'firma')" onclick="addFirma()" class="el-card">
+                        <div class="el-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"/></svg>
+                        </div>
+                        <span>Firma</span>
+                    </div>
                 </div>
 
                 <div class="wp-section-divider"></div>
@@ -434,10 +435,10 @@
                 <div class="wp-section-title">Variables</div>
                 <div class="var-chips">
                     @foreach($variables as $key => $label)
-                        <div onclick="insertVariable('{{ $key }}')" class="var-chip" title="{{ $label }}"><code>{{ $key }}</code></div>
+                        <div draggable="true" ondragstart="onVarDragStart(event, '{{ $key }}')" onclick="addVarAsText('{{ $key }}')" class="var-chip" title="{{ $label }}"><code>{{ $key }}</code></div>
                     @endforeach
                 </div>
-                <div style="padding:6px 12px;font-size:10px;color:#a7aaad;font-style:italic;">Clic = insertar en texto seleccionado</div>
+                <div style="padding:6px 12px;font-size:10px;color:#a7aaad;font-style:italic;">Arrastrar al canvas o clic para agregar</div>
 
             </div>
 
@@ -512,17 +513,7 @@
                             <textarea id="propText" rows="2" oninput="updateProp('text', this.value)" class="wp-textarea" placeholder="Texto del elemento..."></textarea>
                         </div>
                     </div>
-                    <div class="insp-panel" id="propSecVariable">
-                        <div class="insp-panel-header">Variable dinámica</div>
-                        <div class="insp-panel-body">
-                            <select id="propVariable" onchange="updateProp('variable', this.value)" class="wp-select">
-                                <option value="">— Seleccionar —</option>
-                                @foreach($variables as $k => $l)
-                                    <option value="{{ $k }}">{{ $l }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
+
                     <div class="insp-panel hidden" id="propSecImage">
                         <div class="insp-panel-header">Imagen</div>
                         <div class="insp-panel-body">
@@ -536,6 +527,18 @@
                         <div class="insp-panel-header">Código QR</div>
                         <div class="insp-panel-body">
                             <p style="font-size:11.5px;color:#646970;margin:0;line-height:1.5;">El QR se genera automáticamente al emitir el diploma con el enlace de verificación único.</p>
+                        </div>
+                    </div>
+                    <div class="insp-panel" id="propSecFirma" style="display:none;">
+                        <div class="insp-panel-header">Cuadro de firma</div>
+                        <div class="insp-panel-body">
+                            <p style="font-size:11px;color:#646970;margin:0 0 10px;line-height:1.5;">Al emitir el diploma muestra el nombre y cargo del firmante con una línea.</p>
+                            <label style="display:flex;align-items:center;gap:6px;margin-bottom:7px;font-size:12px;color:#1e1e1e;cursor:pointer;">
+                                <input type="checkbox" id="firmaShowName" checked onchange="updateFirmaProp('mostrar_nombre',this.checked)"> Mostrar nombre
+                            </label>
+                            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#1e1e1e;cursor:pointer;">
+                                <input type="checkbox" id="firmaShowCargo" checked onchange="updateFirmaProp('mostrar_cargo',this.checked)"> Mostrar cargo
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -624,6 +627,21 @@
                                 <div>
                                     <label class="wp-label">Grosor</label>
                                     <input type="number" id="propLineWidth" value="2" min="1" max="50" oninput="updateProp('strokeWidth', this.value)" class="wp-input">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="insp-panel" id="styleSecFirma" style="display:none;">
+                        <div class="insp-panel-header">Texto de la firma</div>
+                        <div class="insp-panel-body">
+                            <div class="wp-row">
+                                <div>
+                                    <label class="wp-label">Color</label>
+                                    <input type="color" id="firmaColor" value="#1E293B" oninput="updateFirmaProp('fill',this.value)" class="color-swatch" style="width:100%;height:34px;">
+                                </div>
+                                <div>
+                                    <label class="wp-label">Tamaño</label>
+                                    <input type="number" id="firmaFontSize" value="11" min="6" max="60" oninput="updateFirmaProp('fontSize',parseInt(this.value))" class="wp-input">
                                 </div>
                             </div>
                         </div>
@@ -745,7 +763,7 @@
         const MAX_HISTORY = 50;
 
         function saveState() {
-            const json = JSON.stringify(c.toJSON(['_elId','_tipo','_variable','_src']));
+            const json = JSON.stringify(c.toJSON(['_elId','_tipo','_src']));
             if (historyIndex < history.length - 1) history = history.slice(0, historyIndex + 1);
             history.push(json);
             if (history.length > MAX_HISTORY) history.shift();
@@ -806,14 +824,22 @@
 
         function createEl(el) {
             const config = el.config_json || {}, id = el.id || 'el_'+(++elIdCounter);
-            let obj;
-            switch (el.tipo) {
+            let obj, tipo=el.tipo;
+            if (tipo === 'variable') {
+                tipo = 'text';
+                config.text = '@{{' + (el.variable || 'variable') + '}}';
+            }
+            switch (tipo) {
                 case 'text':
                     obj = new fabric.Textbox(config.text||'Texto',{left:el.x,top:el.y,width:el.width,height:el.height,fontSize:config.fontSize||32,fill:config.fill||'#000000',textAlign:config.textAlign||'left',fontFamily:config.fontFamily||'Arial',fontStyle:config.italic?'italic':'normal',fontWeight:config.bold?'bold':'normal',underline:config.underline||false,splitByGrapheme:true}); break;
-                case 'variable':
-                    obj = new fabric.Textbox('@{{'+(el.variable||'variable')+'}}',{left:el.x,top:el.y,width:el.width,height:el.height,fontSize:config.fontSize||32,fill:config.fill||'#000000',textAlign:config.textAlign||'left',fontFamily:config.fontFamily||'Arial',fontStyle:config.italic?'italic':'normal',fontWeight:config.bold?'bold':'normal',underline:config.underline||false,splitByGrapheme:true,editable:false}); obj._variable=el.variable; break;
                 case 'qr':
                     obj = new fabric.Rect({left:el.x,top:el.y,width:el.width||120,height:el.height||120,fill:'#f8f8f8',stroke:'#999',strokeWidth:1,strokeDashArray:[5,3],rx:2,ry:2}); break;
+                case 'firma': {
+                    const cfg=el.config_json&&typeof el.config_json==='string'?JSON.parse(el.config_json):el.config_json||{};
+                    obj=new fabric.Rect({left:el.x,top:el.y,width:el.width||220,height:el.height||80,fill:'#F0F9FF',stroke:'#0EA5E9',strokeWidth:1,strokeDashArray:[4,3],rx:3,ry:3});
+                    obj._mostrarNombre=cfg.mostrar_nombre??true; obj._mostrarCargo=cfg.mostrar_cargo??true;
+                    obj._firmaColor=cfg.fill||'#1E293B'; obj._firmaFontSize=cfg.fontSize||11;
+                    break; }
                 case 'rect':
                     obj = new fabric.Rect({left:el.x,top:el.y,width:el.width,height:el.height,fill:config.fill||'transparent',stroke:config.stroke||'#000',strokeWidth:config.strokeWidth||1,rx:config.rx||0,ry:config.ry||0}); break;
                 case 'line':
@@ -830,8 +856,8 @@
             let obj; const x=opts.x||100, y=opts.y||100;
             switch(tipo) {
                 case 'text': obj=new fabric.Textbox(opts.text||'Texto',{left:x,top:y,width:300,height:60,fontSize:32,fill:'#000',splitByGrapheme:true}); break;
-                case 'variable': obj=new fabric.Textbox('@{{'+(opts.key||'full_name')+'}}',{left:x,top:y,width:300,height:60,fontSize:32,fill:'#000',splitByGrapheme:true,editable:false}); obj._variable=opts.key||'full_name'; break;
                 case 'qr': obj=new fabric.Rect({left:x,top:y,width:120,height:120,fill:'#f8f8f8',stroke:'#999',strokeWidth:1,strokeDashArray:[5,3],rx:2,ry:2}); break;
+                case 'firma': obj=new fabric.Rect({left:x,top:y,width:220,height:80,fill:'#F0F9FF',stroke:'#0EA5E9',strokeWidth:1,strokeDashArray:[4,3],rx:3,ry:3}); obj._mostrarNombre=true; obj._mostrarCargo=true; obj._firmaColor='#1E293B'; obj._firmaFontSize=11; break;
                 case 'rect': obj=new fabric.Rect({left:x,top:y,width:200,height:100,fill:'transparent',stroke:'#000',strokeWidth:1}); break;
                 case 'line': obj=new fabric.Line([x,y,x+200,y],{stroke:'#000',strokeWidth:2}); break;
                 case 'image': document.getElementById('imageInput').click(); return null;
@@ -841,8 +867,12 @@
         }
 
         function addText()     { makeObj('text');     toast('Texto añadido','success'); }
-        function addVariable() { makeObj('variable',{key:Object.keys(variables)[0]}); toast('Variable añadida','success'); }
+        function addVarAsText(key) {
+            const obj=makeObj('text',{text:'@{{'+key+'}}'});
+            toast('Variable añadida: @{{'+key+'}}','success');
+        }
         function addQr()       { makeObj('qr');       toast('QR añadido','success'); }
+        function addFirma()    { makeObj('firma');    toast('Cuadro de firma añadido','success'); }
         function addRect()     { makeObj('rect');     toast('Figura añadida','success'); }
         function addLine()     { makeObj('line');     toast('Línea añadida','success'); }
         function addImage()    { document.getElementById('imageInput').click(); }
@@ -880,6 +910,10 @@
             e.target.classList.add('dragging');
             setTimeout(()=>e.target.classList.remove('dragging'),0);
         }
+        function onVarDragStart(e,key){
+            e.dataTransfer.setData('text/plain','var::'+key);
+            e.dataTransfer.effectAllowed='copy';
+        }
         document.getElementById('canvasViewport').addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='copy';});
         document.getElementById('canvasViewport').addEventListener('drop',function(e){
             e.preventDefault();
@@ -887,7 +921,13 @@
             const rect=c.getElement().getBoundingClientRect(), scale=rect.width/W;
             const x=(e.clientX-rect.left)/scale, y=(e.clientY-rect.top)/scale;
             if(tipo==='image'){document.getElementById('imageInput').click();return;}
-            makeObj(tipo,tipo==='variable'?{x,y,key:Object.keys(variables)[0]}:{x,y,text:tipo==='text'?'Texto':undefined});
+            if(tipo.startsWith('var::')){
+                const key=tipo.slice(5);
+                makeObj('text',{x,y,text:'@{{'+key+'}}'});
+                toast('Variable añadida: @{{'+key+'}}','success');
+                return;
+            }
+            makeObj(tipo,{x,y,text:tipo==='text'?'Texto':undefined});
             toast('Elemento agregado','success');
         });
 
@@ -895,6 +935,34 @@
         c.on('selection:created', e=>showProps(e.selected[0]));
         c.on('selection:updated', e=>showProps(e.selected[0]));
         c.on('selection:cleared', ()=>hideProps());
+
+        // Dibuja la línea y etiqueta de los elementos tipo 'firma' encima del canvas
+        c.on('after:render', function() {
+            const ctx = c.contextContainer;
+            const vt  = c.viewportTransform || [1,0,0,1,0,0];
+            c.getObjects().forEach(function(o) {
+                if(o._tipo !== 'firma') return;
+                const w = o.width  * (o.scaleX || 1);
+                const h = o.height * (o.scaleY || 1);
+                const lx = o.left, ly = o.top;
+                ctx.save();
+                ctx.transform(vt[0], vt[1], vt[2], vt[3], vt[4], vt[5]);
+                // Línea de firma
+                ctx.beginPath();
+                ctx.strokeStyle = '#0369A1';
+                ctx.lineWidth = 1;
+                ctx.moveTo(lx + w * 0.06, ly + h * 0.52);
+                ctx.lineTo(lx + w * 0.94, ly + h * 0.52);
+                ctx.stroke();
+                // Etiqueta
+                const fs = Math.max(8, h * 0.16);
+                ctx.fillStyle = '#0369A1';
+                ctx.font = 'bold ' + fs + 'px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('✍ FIRMA', lx + w / 2, ly + h * 0.36);
+                ctx.restore();
+            });
+        });
         c.on('object:moving', e=>{
             const o=e.target;
             document.getElementById('selectionInfo').textContent=`X:${Math.round(o.left)} Y:${Math.round(o.top)} W:${Math.round(o.width*(o.scaleX||1))} H:${Math.round(o.height*(o.scaleY||1))}`;
@@ -921,19 +989,20 @@
             document.getElementById('selectionDot').style.background = 'var(--brand)';
 
             const tipo=obj._tipo||'';
-            const names={text:'Texto',variable:'Variable',qr:'Código QR',rect:'Figura',line:'Línea',image:'Imagen'};
+            const names={text:'Texto',variable:'Variable',qr:'Código QR',rect:'Figura',line:'Línea',image:'Imagen',firma:'Cuadro de firma'};
             document.getElementById('propType').textContent=names[tipo]||tipo;
-            document.getElementById('propSubtype').textContent=tipo==='variable'?(obj._variable||''):(tipo==='image'?'Imagen insertada':'Elemento visual');
-            const icons={text:'<strong style="font-size:15px">T</strong>',variable:'<span style="font-size:12px;font-weight:800">{x}</span>',qr:'<span style="font-size:13px">▦</span>',rect:'<span style="font-size:15px">■</span>',line:'<span style="font-size:15px">—</span>',image:'<span style="font-size:14px">🖼</span>'};
+            document.getElementById('propSubtype').textContent=tipo==='image'?'Imagen insertada':tipo==='firma'?'Firma del diploma':'Elemento visual';
+            const icons={text:'<strong style="font-size:15px">T</strong>',qr:'<span style="font-size:13px">▦</span>',rect:'<span style="font-size:15px">■</span>',line:'<span style="font-size:15px">—</span>',image:'<span style="font-size:14px">🖼</span>',firma:'<span style="font-size:13px">✍</span>'};
             document.getElementById('propIcon').innerHTML=icons[tipo]||'•';
 
-            document.getElementById('propSecText').style.display=(tipo==='text'||tipo==='variable')?'':'none';
-            document.getElementById('propSecVariable').style.display=tipo==='variable'?'':'none';
+            document.getElementById('propSecText').style.display=tipo==='text'?'':'none';
             document.getElementById('propSecImage').style.display=tipo==='image'?'':'none';
             document.getElementById('propSecQR').style.display=tipo==='qr'?'':'none';
-            document.getElementById('styleSecText').style.display=(tipo==='text'||tipo==='variable')?'':'none';
+            document.getElementById('propSecFirma').style.display=tipo==='firma'?'':'none';
+            document.getElementById('styleSecText').style.display=tipo==='text'?'':'none';
             document.getElementById('styleSecRect').style.display=tipo==='rect'?'':'none';
             document.getElementById('styleSecLine').style.display=tipo==='line'?'':'none';
+            document.getElementById('styleSecFirma').style.display=tipo==='firma'?'':'none';
 
             if(tipo==='image'&&obj._src){document.getElementById('imagePreviewContainer').classList.remove('hidden');document.getElementById('imagePreview').src=obj._src;}
             else document.getElementById('imagePreviewContainer').classList.add('hidden');
@@ -964,7 +1033,7 @@
             document.getElementById('propH').value=Math.round(obj.height*(obj.scaleY||1));
             document.getElementById('propAngle').value=Math.round(obj.angle||0);
             document.getElementById('angleDisplay').textContent=Math.round(obj.angle||0)+'°';
-            if(obj._tipo==='text'||obj._tipo==='variable'){
+            if(obj._tipo==='text'){
                 document.getElementById('propText').value=obj.text||'';
                 document.getElementById('propFontSize').value=obj.fontSize||32;
                 document.getElementById('propFontFamily').value=obj.fontFamily||'Arial';
@@ -973,10 +1042,25 @@
                 document.getElementById('styleItalic').classList.toggle('active',obj.fontStyle==='italic');
                 document.getElementById('styleUnderline').classList.toggle('active',!!obj.underline);
                 document.querySelectorAll('.align-btn').forEach(b=>b.classList.toggle('active',b.dataset.align===(obj.textAlign||'left')));
-                if(obj._tipo==='variable') document.getElementById('propVariable').value=obj._variable||'';
             }
             if(obj._tipo==='rect'){document.getElementById('propFill').value=obj.fill||'#ffffff';document.getElementById('propStroke').value=obj.stroke||'#000000';document.getElementById('propStrokeWidth').value=obj.strokeWidth||1;document.getElementById('propRx').value=obj.rx||0;}
             if(obj._tipo==='line'){document.getElementById('propLineColor').value=obj.stroke||'#000000';document.getElementById('propLineWidth').value=obj.strokeWidth||2;}
+            if(obj._tipo==='firma'){
+                document.getElementById('firmaShowName').checked=obj._mostrarNombre??true;
+                document.getElementById('firmaShowCargo').checked=obj._mostrarCargo??true;
+                document.getElementById('firmaColor').value=obj._firmaColor||'#1E293B';
+                document.getElementById('firmaFontSize').value=obj._firmaFontSize||11;
+            }
+        }
+
+        function updateFirmaProp(prop, value) {
+            const obj = c.getActiveObject(); if (!obj || obj._tipo !== 'firma') return;
+            if(prop==='mostrar_nombre') obj._mostrarNombre=value;
+            else if(prop==='mostrar_cargo') obj._mostrarCargo=value;
+            else if(prop==='fill') { obj._firmaColor=value; obj.set('stroke', value); }
+            else if(prop==='fontSize') obj._firmaFontSize=value;
+            c.requestRenderAll();
+            pushUndo();
         }
 
         function updateProp(prop, value) {
@@ -984,10 +1068,6 @@
             switch(prop) {
                 case 'text':
                     obj.set('text', String(value));
-                    break;
-                case 'variable':
-                    obj._variable = value;
-                    obj.set('text', '{{'+value+'}}');
                     break;
                 case 'textAlign':
                     obj.set('textAlign', value);
@@ -1098,14 +1178,14 @@
             const list=document.getElementById('layerList'),empty=document.getElementById('layerEmpty'),objs=c.getObjects();
             if(!objs.length){list.innerHTML='';empty.classList.remove('hidden');return;}
             empty.classList.add('hidden');
-            const names={text:'Texto',variable:'Variable',qr:'QR',rect:'Figura',line:'Línea',image:'Imagen'};
-            const icons={text:'T',variable:'{x}',qr:'▦',rect:'■',line:'—',image:'🖼'};
+            const names={text:'Texto',qr:'QR',rect:'Figura',line:'Línea',image:'Imagen'};
+            const icons={text:'T',qr:'▦',rect:'■',line:'—',image:'🖼'};
             const sel=c.getActiveObject();
             list.innerHTML=objs.slice().reverse().map((o)=>{
                 const t=o._tipo||'text',active=sel&&sel._elId===o._elId?'active':'';
                 return `<div class="layer-item ${active}" onclick="selectLayer('${o._elId}')">
                     <span class="layer-icon">${icons[t]||'•'}</span>
-                    <span class="layer-name">${names[t]||t}${t==='variable'&&o._variable?' ('+o._variable+')':''}</span>
+                    <span class="layer-name">${names[t]||t}</span>
                     <span class="layer-del" onclick="event.stopPropagation();c.remove(o);c.renderAll();autoSave();refreshLayers();hideProps();" title="Eliminar">✕</span>
                 </div>`;
             }).join('');
@@ -1216,14 +1296,16 @@
         // ─── Save ───
         function getElements(){
             return c.getObjects().map((o,i)=>{
-                // Skip images that are still data URLs (upload in progress or failed)
                 if(o._tipo==='image'&&(!o._src||o._src.startsWith('data:'))) return null;
+                let tipo = o._tipo;
+                if (tipo === 'variable') tipo = 'text';
                 let cfg={};
-                if(o._tipo==='text'||o._tipo==='variable') cfg={text:o.text,fontSize:o.fontSize,fill:o.fill,fontFamily:o.fontFamily,textAlign:o.textAlign,bold:o.fontWeight==='bold',italic:o.fontStyle==='italic',underline:o.underline};
-                else if(o._tipo==='rect') cfg={fill:o.fill,stroke:o.stroke,strokeWidth:o.strokeWidth,rx:o.rx,ry:o.ry};
-                else if(o._tipo==='line') cfg={stroke:o.stroke,strokeWidth:o.strokeWidth};
-                else if(o._tipo==='image') cfg={src:o._src||'',path:o._path||''};
-                return{id:o._elId&&!o._elId.toString().startsWith('el_')?parseInt(o._elId):null,tipo:o._tipo||'text',variable:o._variable||null,x:Math.round(o.left),y:Math.round(o.top),width:Math.round(o.width*(o.scaleX||1)),height:Math.round(o.height*(o.scaleY||1)),config_json:JSON.stringify(cfg),orden:i+1};
+                if(tipo==='text') cfg={text:o.text,fontSize:o.fontSize,fill:o.fill,fontFamily:o.fontFamily,textAlign:o.textAlign,bold:o.fontWeight==='bold',italic:o.fontStyle==='italic',underline:o.underline};
+                else if(tipo==='rect') cfg={fill:o.fill,stroke:o.stroke,strokeWidth:o.strokeWidth,rx:o.rx,ry:o.ry};
+                else if(tipo==='line') cfg={stroke:o.stroke,strokeWidth:o.strokeWidth};
+                else if(tipo==='image') cfg={src:o._src||'',path:o._path||''};
+                else if(tipo==='firma') cfg={mostrar_nombre:o._mostrarNombre??true,mostrar_cargo:o._mostrarCargo??true,fontSize:o._firmaFontSize||11,fill:o._firmaColor||'#1E293B'};
+                return{id:o._elId&&!o._elId.toString().startsWith('el_')?parseInt(o._elId):null,tipo:tipo,x:Math.round(o.left),y:Math.round(o.top),width:Math.round(o.width*(o.scaleX||1)),height:Math.round(o.height*(o.scaleY||1)),config_json:JSON.stringify(cfg),orden:i+1};
             }).filter(Boolean);
         }
 

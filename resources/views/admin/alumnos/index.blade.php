@@ -54,24 +54,55 @@
 
         .alert-success {
             background:#F0FDF4; border:1px solid #BBF7D0; color:#15803D;
-            border-radius:10px; padding:0.75rem 1.1rem; font-size:0.875rem; margin-bottom:1.25rem;
+            border-radius:10px; padding:0.75rem 1.1rem; font-size:0.875rem; margin-bottom:1rem;
         }
+        .alert-warning { background:#FFFBEB; border:1px solid #FDE68A; color:#92400E;
+            border-radius:10px; padding:0.75rem 1.1rem; font-size:0.82rem; margin-bottom:1rem; }
+        .btn-outline-sm {
+            display:inline-flex; align-items:center; gap:5px;
+            background:#fff; color:#475569; border:1px solid #DDE3EF;
+            padding:0.45rem 0.9rem; border-radius:8px; font-size:0.8rem; font-weight:600;
+            text-decoration:none; transition:background 0.1s;
+        }
+        .btn-outline-sm:hover { background:#F7F9FC; color:#475569; }
     </style>
 
     @if(session('success'))
         <div class="alert-success">{{ session('success') }}</div>
     @endif
 
+    @if(session('import_errores') && count(session('import_errores')))
+        <div class="alert-warning">
+            <strong>Filas con errores:</strong>
+            <ul style="margin:0.3rem 0 0 1.1rem;padding:0;">
+                @foreach(session('import_errores') as $e)<li>{{ $e }}</li>@endforeach
+            </ul>
+        </div>
+    @endif
+    @if(session('import_omitidos') && count(session('import_omitidos')))
+        <div class="alert-warning">
+            <strong>Omitidos (ya existían):</strong> {{ implode(', ', session('import_omitidos')) }}
+        </div>
+    @endif
+
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem;">
         <div>
             <p style="font-size:0.8rem; color:#64748b; margin:0.2rem 0 0;">{{ auth()->user()->department->name ?? 'Tu departamento' }}</p>
         </div>
-        <a href="{{ route('admin.alumnos.create') }}" class="btn-primary">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:15px;height:15px;">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
-            </svg>
-            Nuevo Alumno
-        </a>
+        <div style="display:flex;gap:0.6rem;">
+            <a href="{{ route('admin.alumnos.importar') }}" class="btn-outline-sm">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+                </svg>
+                Importar CSV
+            </a>
+            <a href="{{ route('admin.alumnos.create') }}" class="btn-primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:15px;height:15px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                </svg>
+                Nuevo Alumno
+            </a>
+        </div>
     </div>
 
     <form method="GET" action="{{ route('admin.alumnos.index') }}">

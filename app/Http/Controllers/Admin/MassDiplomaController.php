@@ -7,9 +7,11 @@ use App\Models\Cursos;
 use App\Models\Diploma;
 use App\Models\DiplomaTemplate;
 use App\Models\User;
-use App\Services\DiplomaRenderer;
+use App\Models\Firmante;
+use App\Models\FirmaAuditoria;
+use App\Services\PdfGenerator;
+use App\Services\PdfSigner;
 use App\Services\QrGenerator;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use ZipArchive;
@@ -26,10 +28,12 @@ class MassDiplomaController extends Controller
         return auth()->user()->department_id;
     }
 
-    public function create()
+    public function create(Request $request)
     {
+        $cursoId = $request->query('curso_id');
+
         $cursos = Cursos::where('departamento_id', $this->departamentoId())
-            ->where('estado', 'activo')
+            ->whereIn('estado', ['activo', 'finalizado'])
             ->orderBy('nombre')
             ->get();
 
@@ -37,15 +41,31 @@ class MassDiplomaController extends Controller
             $q->where('departamento_id', $this->departamentoId())
         )->with('curso')->orderBy('nombre')->get();
 
-        return view('admin.diplomas.mass-create', compact('cursos', 'templates'));
+        $firmantes = Firmante::where('departamento_id', $this->departamentoId())
+            ->disponibles()
+            ->orderBy('nombre')
+            ->get();
+
+        $cursoPreseleccionado = null;
+        $templatePreseleccionado = null;
+        if ($cursoId) {
+            $cursoPreseleccionado = $cursos->find($cursoId);
+            if ($cursoPreseleccionado) {
+                $templatePreseleccionado = $templates->firstWhere('curso_id', $cursoId);
+            }
+        }
+
+        return view('admin.diplomas.mass-create', compact('cursos', 'templates', 'firmantes', 'cursoPreseleccionado', 'templatePreseleccionado'));
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'curso_id'    => 'required|exists:cursos,id',
-            'template_id' => 'required|exists:diploma_templates,id',
+            'curso_id'      => 'required|exists:cursos,id',
+            'template_id'   => 'required|exists:diploma_templates,id',
             'fecha_emision' => 'required|date',
+            'firmante_id'   => 'nullable|exists:firmantes,id',
+            'password_firma'=> 'nullable|string|required_with:firmante_id',
         ]);
 
         $curso = Cursos::findOrFail($data['curso_id']);
@@ -53,15 +73,31 @@ class MassDiplomaController extends Controller
 
         $template = DiplomaTemplate::findOrFail($data['template_id']);
         abort_unless($template->curso->departamento_id === $this->departamentoId(), 403);
-        abort_unless($template->elements()->exists(), 400, 'La plantilla no tiene elementos. Diseñala primero.');
+        if (!$template->elements()->exists()) {
+            return redirect()->route('admin.cursos.show', $curso->id)
+                ->with('toast', ['type' => 'error', 'message' => 'La plantilla no tiene elementos. Diseñala primero.']);
+        }
+
+        // Prepare digital signature params (optional)
+        $signatureParams = null;
+        $firmante = null;
+        if (!empty($data['firmante_id'])) {
+            $firmante = Firmante::findOrFail($data['firmante_id']);
+            abort_unless($firmante->departamento_id === $this->departamentoId(), 403);
+            try {
+                $signatureParams = app(PdfSigner::class)->prepareSignatureParams($firmante, $data['password_firma']);
+            } catch (\Exception $e) {
+                return back()->withErrors(['password_firma' => 'Error con la firma electrónica: ' . $e->getMessage()]);
+            }
+        }
 
         $alumnos = $curso->alumnos()
-            ->wherePivot('estado', 'completado')
+            ->wherePivotIn('estado', ['inscrito', 'en_curso', 'completado'])
             ->orderBy('full_name')
             ->get();
 
         if ($alumnos->isEmpty()) {
-            return back()->withErrors(['curso_id' => 'No hay alumnos con estado "completado" en este curso.']);
+            return back()->withErrors(['curso_id' => 'No hay alumnos inscritos en este curso.']);
         }
 
         $already = Diploma::where('curso_id', $curso->id)
@@ -71,9 +107,10 @@ class MassDiplomaController extends Controller
 
         $generated = [];
         $skipped = 0;
+        $firmaErrors = 0;
 
-        $renderer = app(DiplomaRenderer::class);
-        $qrGen = app(QrGenerator::class);
+        $qrGen  = app(QrGenerator::class);
+        $pdfGen = app(PdfGenerator::class);
 
         foreach ($alumnos as $alumno) {
             if (in_array($alumno->id, $already)) {
@@ -88,43 +125,90 @@ class MassDiplomaController extends Controller
 
             $tokenQr = (string) Str::uuid();
 
-            $diploma = Diploma::create([
-                'user_id'      => $alumno->id,
-                'curso_id'     => $curso->id,
-                'template_id'  => $template->id,
-                'emitido_por'  => auth()->id(),
-                'folio'        => $folio,
-                'token_qr'     => $tokenQr,
-                'ruta_pdf'     => 'diplomas/' . $folio . '.pdf',
-                'fecha_emision' => $data['fecha_emision'],
-                'estado'       => 'emitido',
-            ]);
+            $diplomaData = [
+                'user_id'              => $alumno->id,
+                'curso_id'             => $curso->id,
+                'version_plantilla_id' => null,
+                'template_id'          => $template->id,
+                'emitido_por'          => auth()->id(),
+                'folio'                => $folio,
+                'token_qr'             => $tokenQr,
+                'ruta_pdf'             => 'diplomas/' . $folio . '.pdf',
+                'fecha_emision'        => $data['fecha_emision'],
+                'estado'               => 'emitido',
+            ];
 
-            // Generate QR
+            if ($firmante) {
+                $diplomaData['firmante_id']          = $firmante->id;
+                $diplomaData['firmado_en']           = now();
+                $diplomaData['tiene_firma_digital']  = true;
+                $diplomaData['cert_serie_usada']     = $signatureParams['serie'] ?? null;
+            }
+
+            $diploma = Diploma::create($diplomaData);
+
+            // QR image
             $qrGen->generate(route('verificar', $tokenQr), 'qr/' . $tokenQr . '.png');
 
-            // Generate PDF
-            $html = $renderer->renderHtml($template, $diploma);
-            $pdf = Pdf::loadHTML($html)->setPaper([0, 0, $template->canvas_width, $template->canvas_height]);
-            $pdfContent = $pdf->output();
+            // PDF (with or without signature)
+            $pdfContent = $pdfGen->generate($template, $diploma, $signatureParams);
 
-            $diploma->ruta_pdf = 'diplomas/' . $folio . '.pdf';
             \Illuminate\Support\Facades\Storage::disk('public')->put($diploma->ruta_pdf, $pdfContent);
-            $diploma->save();
+
+            // Audit trail for digital signature
+            if ($firmante && $signatureParams) {
+                FirmaAuditoria::create([
+                    'diploma_id'  => $diploma->id,
+                    'firmante_id' => $firmante->id,
+                    'usuario_id'  => auth()->id(),
+                    'accion'      => 'firmado',
+                    'cert_serie'  => $signatureParams['serie'] ?? null,
+                    'ip'          => request()->ip(),
+                ]);
+            }
 
             $generated[] = $diploma;
         }
 
         $count = count($generated);
-        $msg = "{$count} diploma(s) generado(s) correctamente.";
+        $msg = "{$count} diploma(s) generado(s)" . ($firmante ? ' y firmado(s) electrónicamente' : '') . '.';
         if ($skipped > 0) {
             $msg .= " {$skipped} alumno(s) ya tenían diploma.";
         }
 
-        return redirect()->route('admin.diplomas.mass.show', [
-            'curso' => $curso->id,
-            'template' => $template->id,
-        ])->with('success', $msg);
+        return redirect()->route('admin.cursos.show', $curso->id)
+            ->with('toast', ['type' => 'success', 'message' => $msg]);
+    }
+
+    public function downloadCombined(Cursos $curso)
+    {
+        abort_unless($curso->departamento_id === $this->departamentoId(), 403);
+
+        $template = $curso->template;
+        abort_unless($template, 404, 'El curso no tiene plantilla de diploma.');
+
+        $diplomas = Diploma::where('curso_id', $curso->id)
+            ->where('template_id', $template->id)
+            ->with(['alumno', 'template.elements'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        if ($diplomas->isEmpty()) {
+            return back()->with('error', 'No hay diplomas para este curso.');
+        }
+
+        $pdfGen = app(PdfGenerator::class);
+        $pdfContent = $pdfGen->generateMultiple($template, $diplomas);
+
+        if (empty($pdfContent)) {
+            return back()->with('error', 'No se pudieron renderizar los diplomas.');
+        }
+
+        $nombre = 'diplomas-' . Str::slug($curso->nombre) . '-' . date('Ymd') . '.pdf';
+        return response($pdfContent, 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $nombre . '"',
+        ]);
     }
 
     public function show(Request $request, Cursos $curso)
@@ -133,7 +217,7 @@ class MassDiplomaController extends Controller
 
         $diplomas = Diploma::where('curso_id', $curso->id)
             ->where('template_id', $request->template)
-            ->with(['alumno', 'template'])
+            ->with(['alumno', 'template', 'firmante'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -159,6 +243,28 @@ class MassDiplomaController extends Controller
         ]);
     }
 
+    public function regenerate(Cursos $curso)
+    {
+        abort_unless($curso->departamento_id === $this->departamentoId(), 403);
+
+        $diplomas = Diploma::where('curso_id', $curso->id)->get();
+
+        foreach ($diplomas as $d) {
+            $pdfPath = 'public/' . $d->ruta_pdf;
+            if (\Illuminate\Support\Facades\Storage::exists($pdfPath)) {
+                \Illuminate\Support\Facades\Storage::delete($pdfPath);
+            }
+            $qrPath = 'public/qr/' . $d->token_qr . '.png';
+            if (\Illuminate\Support\Facades\Storage::exists($qrPath)) {
+                \Illuminate\Support\Facades\Storage::delete($qrPath);
+            }
+            $d->delete();
+        }
+
+        return redirect()->route('admin.diplomas.mass.create', ['curso_id' => $curso->id])
+            ->with('success', "Diplomas eliminados. Genera los nuevos a continuación.");
+    }
+
     public function downloadAll(Cursos $curso)
     {
         abort_unless($curso->departamento_id === $this->departamentoId(), 403);
@@ -176,19 +282,31 @@ class MassDiplomaController extends Controller
         \Illuminate\Support\Facades\File::ensureDirectoryExists(storage_path('app/temp'));
 
         $zip = new ZipArchive;
-        if ($zip->open($zipPath, ZipArchive::CREATE) !== true) {
+        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
             return back()->with('error', 'No se pudo crear el ZIP.');
         }
 
+        $added = 0;
         foreach ($diplomas as $diploma) {
             $filePath = storage_path('app/public/' . $diploma->ruta_pdf);
             if (file_exists($filePath)) {
                 $safeName = Str::slug($diploma->alumno?->full_name ?? 'alumno') . '-' . $diploma->folio . '.pdf';
                 $zip->addFile($filePath, $safeName);
+                $added++;
             }
         }
 
         $zip->close();
+
+        if ($added === 0 || !file_exists($zipPath) || filesize($zipPath) < 22) {
+            // Limpiar archivo vacío si quedó
+            if (file_exists($zipPath)) {
+                unlink($zipPath);
+            }
+            return back()->with('error',
+                'No se encontraron archivos PDF en disco. Usa el botón "Regenerar" para volver a generarlos.'
+            );
+        }
 
         return response()->download($zipPath, $zipName)->deleteFileAfterSend(true);
     }
