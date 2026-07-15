@@ -49,6 +49,32 @@
 
         .alert-success { background:#F0FDF4; border:1px solid #BBF7D0; color:#15803D;
             border-radius:10px; padding:0.75rem 1.1rem; font-size:0.875rem; margin-bottom:1.25rem; }
+
+        /* ── Multi-curso ────────────────────────── */
+        .cursos-list { list-style:none; margin:0; padding:0; }
+        .cursos-list li { display:flex; align-items:center; gap:0.75rem;
+            padding:0.65rem 0; border-bottom:1px solid #F0F4FA; font-size:0.82rem; }
+        .cursos-list li:last-child { border-bottom:none; }
+        .cursos-list .curso-nombre { flex:1; color:#1E293B; font-weight:500; }
+        .cursos-list .curso-badge {
+            display:inline-flex; align-items:center; padding:0.15rem 0.55rem;
+            border-radius:20px; font-size:0.68rem; font-weight:700; white-space:nowrap;
+        }
+        .cb-completado { background:#F0FDF4; color:#16A34A; }
+        .cb-en-curso   { background:#EFF6FF; color:#1D4ED8; }
+        .cb-inscrito   { background:#FFF7ED; color:#EA580C; }
+        .cb-baja       { background:#FEF2F2; color:#DC2626; }
+        .cb-gray       { background:#F1F5F9; color:#94A3B8; }
+
+        .enroll-form { margin-top:1rem; padding-top:1rem; border-top:1px solid #F0F4FA; }
+        .enroll-select {
+            width:100%; border:1px solid #DDE3EF; border-radius:9px;
+            padding:0.55rem 0.85rem; font-size:0.82rem; outline:none;
+            transition:border 0.15s; background:#fff; margin-bottom:0.75rem;
+        }
+        .enroll-select:focus { border-color:var(--brand); box-shadow:0 0 0 3px var(--brand-alpha); }
+
+        [x-cloak] { display:none !important; }
     </style>
 
     @if(session('success'))
@@ -217,6 +243,120 @@
                     </table>
                 </div>
             @endif
+            {{-- ── Todos los cursos del alumno ──────────────── --}}
+            <div class="card" style="margin-top:1rem;" x-data="{ inscribiendo: false }">
+                <div style="display:flex;align-items:center;gap:10px;padding:0.9rem 1.25rem;border-bottom:1px solid #F0F4FA;background:#F8FAFC;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                         style="width:15px;height:15px;color:#64748b;flex-shrink:0;">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
+                    </svg>
+                    <span style="font-size:0.78rem;font-weight:700;color:#374151;flex:1;">
+                        Cursos del alumno
+                        <span style="font-size:0.72rem;font-weight:500;color:#94A3B8;">({{ $todosCursos->count() }})</span>
+                    </span>
+                    @if($cursosDisponibles->isNotEmpty())
+                        <button type="button" @click="inscribiendo = !inscribiendo"
+                                style="display:inline-flex;align-items:center;gap:5px;background:var(--brand);color:#fff;border:none;
+                                       padding:0.35rem 0.85rem;border-radius:7px;font-size:0.75rem;font-weight:600;cursor:pointer;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:11px;height:11px;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                            </svg>
+                            Inscribir en otro
+                        </button>
+                    @endif
+                </div>
+
+                <div style="padding:1rem 1.25rem;">
+                    @if($todosCursos->isEmpty())
+                        <p style="font-size:0.82rem;color:#94A3B8;text-align:center;padding:0.5rem 0;">
+                            Sin cursos registrados.
+                        </p>
+                    @else
+                        <ul class="cursos-list">
+                            @foreach($todosCursos as $c)
+                                @php
+                                    $est = $c->pivot->estado;
+                                    $cbClass = match($est) {
+                                        'completado' => 'cb-completado',
+                                        'en_curso'   => 'cb-en-curso',
+                                        'inscrito'   => 'cb-inscrito',
+                                        'baja'       => 'cb-baja',
+                                        default      => 'cb-gray',
+                                    };
+                                @endphp
+                                <li>
+                                    @if($c->id === $curso->id)
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2.5"
+                                             style="width:13px;height:13px;flex-shrink:0;" title="Curso actual">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    @else
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="1.8"
+                                             style="width:13px;height:13px;flex-shrink:0;">
+                                            <circle cx="12" cy="12" r="9"/>
+                                        </svg>
+                                    @endif
+                                    <span class="curso-nombre">
+                                        <a href="{{ route('admin.cursos.alumnos.show', [$c, $alumno]) }}"
+                                           style="color:{{ $c->id === $curso->id ? 'var(--brand)' : '#1E293B' }};text-decoration:none;font-weight:{{ $c->id === $curso->id ? '600' : '500' }};">
+                                            {{ $c->nombre }}
+                                        </a>
+                                    </span>
+                                    <span class="curso-badge {{ $cbClass }}">{{ ucfirst(str_replace('_',' ',$est)) }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+
+                    {{-- Formulario rápido de inscripción en otro curso --}}
+                    @if($cursosDisponibles->isNotEmpty())
+                        <div class="enroll-form" x-show="inscribiendo" x-cloak x-transition>
+                            <p style="font-size:0.78rem;font-weight:600;color:#374151;margin-bottom:0.6rem;">
+                                Inscribir a <strong>{{ $alumno->display_name }}</strong> en:
+                            </p>
+                            <form method="POST" id="enroll-otro-form">
+                                @csrf
+                                <input type="hidden" name="modo" value="existente">
+                                <input type="hidden" name="user_id" value="{{ $alumno->id }}">
+                                <input type="hidden" name="estado" value="inscrito">
+
+                                @php
+                                    $routeTemplate = route('admin.cursos.alumnos.store', ['curso' => '__ID__']);
+                                @endphp
+                                <select class="enroll-select" id="enroll-curso-select"
+                                        onchange="document.getElementById('enroll-otro-form').action=
+                                            '{{ $routeTemplate }}'.replace('__ID__', this.value)">
+                                    <option value="">— Selecciona un curso —</option>
+                                    @foreach($cursosDisponibles as $cd)
+                                        <option value="{{ $cd->id }}">{{ $cd->nombre }}</option>
+                                    @endforeach
+                                </select>
+
+                                <div style="display:flex;gap:0.5rem;">
+                                    <button type="submit"
+                                            onclick="if(!document.getElementById('enroll-curso-select').value){ alert('Selecciona un curso'); return false; }"
+                                            style="display:inline-flex;align-items:center;gap:6px;background:var(--brand);color:#fff;border:none;
+                                                   padding:0.5rem 1.1rem;border-radius:8px;font-size:0.82rem;font-weight:600;cursor:pointer;">
+                                        Inscribir
+                                    </button>
+                                    <button type="button" @click="inscribiendo=false"
+                                            style="display:inline-flex;align-items:center;background:#fff;color:#64748b;border:1px solid #DDE3EF;
+                                                   padding:0.5rem 0.9rem;border-radius:8px;font-size:0.82rem;cursor:pointer;">
+                                        Cancelar
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    @else
+                        <div style="margin-top:0.75rem;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;
+                                    padding:0.6rem 0.9rem;font-size:0.78rem;color:#15803D;">
+                            El alumno ya está inscrito en todos los cursos disponibles del departamento.
+                        </div>
+                    @endif
+                </div>
+            </div>
+
         </div>
 
     </div>

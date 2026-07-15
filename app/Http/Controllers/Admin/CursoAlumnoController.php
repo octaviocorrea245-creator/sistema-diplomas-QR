@@ -52,7 +52,20 @@ class CursoAlumnoController extends Controller
         // Verificar que el alumno esta inscrito en este curso
         $inscripcion = $curso->alumnos()->where('user_id', $alumno->id)->firstOrFail();
 
-        return view('admin.cursos.alumnos.show', compact('curso', 'alumno', 'inscripcion'));
+        // Todos los cursos en los que está inscrito el alumno (del mismo departamento)
+        $todosCursos = $alumno->cursos()
+            ->where('departamento_id', $curso->departamento_id)
+            ->withPivot('estado', 'fecha_completado')
+            ->orderBy('nombre')
+            ->get();
+
+        // Cursos del departamento donde el alumno NO está inscrito (para inscribir en otro)
+        $cursosDisponibles = Cursos::where('departamento_id', $curso->departamento_id)
+            ->whereNotIn('id', $alumno->cursos()->pluck('cursos.id'))
+            ->orderBy('nombre')
+            ->get();
+
+        return view('admin.cursos.alumnos.show', compact('curso', 'alumno', 'inscripcion', 'todosCursos', 'cursosDisponibles'));
     }
 
     // Formulario para agregar/crear alumno en el curso
