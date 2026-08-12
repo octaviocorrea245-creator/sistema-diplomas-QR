@@ -17,6 +17,7 @@
     },
     "dependencies": {
         "fabric": "^7.4.0",
+        "html5-qrcode": "^2.3.8",
         "pdfjs-dist": "^6.0.227"
     }
 }

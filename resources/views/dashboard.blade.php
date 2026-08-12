@@ -23,6 +23,7 @@ if (auth()->check() && auth()->user()->hasRole('admin') && auth()->user()->depar
         <h2>
             @if(Auth::user()->hasRole('supervisor')) Panel de Supervisor
             @elseif(Auth::user()->hasRole('admin')) Panel de Administrador
+            @elseif(Auth::user()->hasRole('diseñador')) Panel de Diseñador
             @else Mi Panel
             @endif
         </h2>
@@ -71,6 +72,8 @@ if (auth()->check() && auth()->user()->hasRole('admin') && auth()->user()->depar
                 Tienes acceso completo al sistema como Supervisor.
             @elseif(Auth::user()->hasRole('admin'))
                 Gestiona los cursos y diplomas de tu carrera.
+            @elseif(Auth::user()->hasRole('diseñador'))
+                Diseña las plantillas de los diplomas de tu departamento.
             @else
                 Consulta tus diplomas y certificados disponibles.
             @endif
@@ -80,6 +83,7 @@ if (auth()->check() && auth()->user()->hasRole('admin') && auth()->user()->depar
                 <span style="width:6px; height:6px; background:#4ADE80; border-radius:50%; display:inline-block;"></span>
                 @if(Auth::user()->hasRole('supervisor')) Supervisor
                 @elseif(Auth::user()->hasRole('admin')) Administrador
+                @elseif(Auth::user()->hasRole('diseñador')) Diseñador
                 @else Beneficiario
                 @endif
             </span>
@@ -160,6 +164,29 @@ if (auth()->check() && auth()->user()->hasRole('admin') && auth()->user()->depar
                 </div>
                 <h3>Diplomas</h3>
                 <p>Emitir y consultar diplomas</p>
+            </a>
+        </div>
+    </div>
+    @endrole
+
+    {{-- Accesos rápidos: Diseñador --}}
+    @role('diseñador')
+    <div style="margin-bottom:1.5rem;">
+        <h2 style="font-size:0.95rem; font-weight:600; color:#0D1B35; margin-bottom:1rem;">Accesos rápidos</h2>
+        <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:1rem;">
+            <a href="{{ route('admin.cursos.index') }}" class="action-card">
+                <div class="icon-box" style="background: var(--brand-bg);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.8" style="width:22px;height:22px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/></svg>
+                </div>
+                <h3>Cursos</h3>
+                <p>Ver los cursos de tu departamento</p>
+            </a>
+            <a href="{{ route('admin.templates.index') }}" class="action-card">
+                <div class="icon-box" style="background: var(--brand-bg);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.8" style="width:22px;height:22px;"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+                </div>
+                <h3>Diseño de Diplomas</h3>
+                <p>Diseñar plantillas de diploma</p>
             </a>
         </div>
     </div>

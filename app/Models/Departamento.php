@@ -15,7 +15,11 @@ class Departamento extends Model
 
     public function users()
     {
-
         return $this->hasMany(User::class, 'department_id');
+    }
+
+    public function firmantes()
+    {
+        return $this->hasMany(Firmante::class, 'departamento_id');
     }
 }

@@ -95,6 +95,17 @@
             </svg>
             Departamentos
         </a>
+
+        <a href="{{ route('supervisor.notificaciones.index') }}" class="nav-link {{ request()->routeIs('supervisor.notificaciones.*') ? 'active' : '' }}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:18px;height:18px;flex-shrink:0;">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
+            </svg>
+            Notificaciones
+            @php $unreadCount = auth()->user()->unreadNotifications->count(); @endphp
+            @if($unreadCount > 0)
+                <span style="margin-left:auto; background:#EF4444; color:#fff; font-size:0.65rem; font-weight:700; min-width:18px; height:18px; border-radius:9px; display:flex; align-items:center; justify-content:center; padding:0 4px;">{{ $unreadCount > 99 ? '99+' : $unreadCount }}</span>
+            @endif
+        </a>
         @endrole
 
         @role('admin')
@@ -127,18 +138,65 @@
             </svg>
             Diplomas
         </a>
+
+        <a href="{{ route('admin.firmantes.index') }}" class="nav-link {{ request()->routeIs('admin.firmantes.*') ? 'active' : '' }}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:18px;height:18px;flex-shrink:0;">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/>
+            </svg>
+            E-Firma
+        </a>
+
+        <a href="{{ route('admin.disenadores.index') }}" class="nav-link {{ request()->routeIs('admin.disenadores.*') ? 'active' : '' }}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:18px;height:18px;flex-shrink:0;">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+            </svg>
+            Diseñadores
+        </a>
+        @endrole
+
+        @role('diseñador')
+        <div style="font-size:0.65rem; font-weight:600; color:#4A6585; letter-spacing:0.1em; text-transform:uppercase; padding:0.75rem 0.6rem 0.25rem; margin-top:0.25rem;">Diseño</div>
+
+        <a href="{{ route('admin.cursos.index') }}" class="nav-link {{ request()->routeIs('admin.cursos.*') ? 'active' : '' }}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:18px;height:18px;flex-shrink:0;">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
+            </svg>
+            Cursos
+        </a>
+
+        <a href="{{ route('admin.templates.index') }}" class="nav-link {{ request()->routeIs('admin.templates.*') ? 'active' : '' }}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:18px;height:18px;flex-shrink:0;">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+            </svg>
+            Diseño de Diplomas
+        </a>
         @endrole
 
     </nav>
 
+    {{-- ─── Perfil (todos los roles) ─── --}}
+    <div style="padding: 0 0.75rem 0.25rem;">
+        <a href="{{ route('profile.edit') }}" class="nav-link {{ request()->routeIs('profile.edit') ? 'active' : '' }}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:18px;height:18px;flex-shrink:0;">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>
+            </svg>
+            Mi Perfil
+        </a>
+    </div>
+
     {{-- ─── Usuario + logout ─── --}}
     <div style="padding: 1rem 1.25rem; border-top: 1px solid rgba(255,255,255,0.07);">
         <div style="display:flex; align-items:center; gap:10px; margin-bottom:0.75rem;">
-            <div style="width:36px; height:36px; border-radius:50%; background: var(--brand);
-                        display:flex; align-items:center; justify-content:center;
-                        font-size:0.8rem; font-weight:700; color:#fff; flex-shrink:0; transition:background 0.3s;">
-                {{ strtoupper(substr(Auth::user()->full_name, 0, 1)) }}
-            </div>
+            @if(Auth::user()->avatar_url)
+                <img src="{{ Auth::user()->avatar_url }}" alt="Avatar"
+                     style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+            @else
+                <div style="width:36px; height:36px; border-radius:50%; background: var(--brand);
+                            display:flex; align-items:center; justify-content:center;
+                            font-size:0.8rem; font-weight:700; color:#fff; flex-shrink:0; transition:background 0.3s;">
+                    {{ strtoupper(substr(Auth::user()->full_name, 0, 1)) }}
+                </div>
+            @endif
             <div style="min-width:0;">
                 <div style="font-size:0.825rem; font-weight:600; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                     {{ Auth::user()->full_name }}
@@ -146,6 +204,7 @@
                 <div style="font-size:0.7rem; color: var(--brand-light); transition:color 0.3s;">
                     @if(Auth::user()->hasRole('supervisor')) Supervisor
                     @elseif(Auth::user()->hasRole('admin')) Administrador
+                    @elseif(Auth::user()->hasRole('diseñador')) Diseñador
                     @else Beneficiario
                     @endif
                 </div>

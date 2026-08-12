@@ -4,14 +4,23 @@
     </x-slot>
 
     @php
-    $deptColor = function($name) {
+    $fallbackColor = function($name) {
         $n = mb_strtolower($name ?? '');
-        if (str_contains($n, 'animac'))      return ['accent'=>'#F5A623','bg'=>'#FEF9EC','light'=>'#FFF3D1','abbr'=>'IAEV'];
-        if (str_contains($n, 'biotecn'))     return ['accent'=>'#7EC441','bg'=>'#F1F9EA','light'=>'#DFFAC4','abbr'=>'IBIO'];
-        if (str_contains($n, 'manufactura')) return ['accent'=>'#E53935','bg'=>'#FEECEB','light'=>'#FFCDD2','abbr'=>'IMA'];
-        if (str_contains($n, 'comercio'))    return ['accent'=>'#8E44AD','bg'=>'#F5EEF8','light'=>'#E8D5F5','abbr'=>'CIA'];
-        if (str_contains($n, 'datos') || str_contains($n, 'artificial')) return ['accent'=>'#00BCD4','bg'=>'#E0F7FA','light'=>'#B2EBF2','abbr'=>'IDIA'];
-        return ['accent'=>'#03A9F4','bg'=>'#E1F5FE','light'=>'#B3E5FC','abbr'=>'TID'];
+        if (str_contains($n, 'animac'))      return '#F5A623';
+        if (str_contains($n, 'biotecn'))     return '#7EC441';
+        if (str_contains($n, 'manufactura')) return '#E53935';
+        if (str_contains($n, 'comercio'))    return '#8E44AD';
+        if (str_contains($n, 'datos') || str_contains($n, 'artificial')) return '#00BCD4';
+        return '#03A9F4';
+    };
+    $fallbackAbbr = function($name) {
+        $n = mb_strtolower($name ?? '');
+        if (str_contains($n, 'animac'))      return 'IAEV';
+        if (str_contains($n, 'biotecn'))     return 'IBIO';
+        if (str_contains($n, 'manufactura')) return 'IMA';
+        if (str_contains($n, 'comercio'))    return 'CIA';
+        if (str_contains($n, 'datos') || str_contains($n, 'artificial')) return 'IDIA';
+        return 'TID';
     };
     @endphp
 
@@ -40,40 +49,51 @@
     <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:1rem;">
 
         @forelse($departments as $dept)
-        @php $c = $deptColor($dept->name); @endphp
+        @php
+            $accent = $dept->color ?? $fallbackColor($dept->name);
+            $abbr   = $dept->abreviatura ?: $fallbackAbbr($dept->name);
+            $isHex  = $accent && preg_match('/^#[0-9a-fA-F]{6}$/', $accent);
+            $bg     = $isHex ? $accent . '1A' : '#F8FAFC';
+            $light  = $isHex ? $accent . '22' : '#F1F5F9';
+        @endphp
 
         <div style="background:#fff; border-radius:14px; box-shadow:0 1px 3px rgba(0,0,0,0.07); overflow:hidden; border:1.5px solid #F1F5F9; transition:box-shadow 0.15s, transform 0.15s;"
              onmouseover="this.style.boxShadow='0 4px 20px rgba(0,0,0,0.1)'; this.style.transform='translateY(-2px)'"
              onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,0.07)'; this.style.transform='none'">
 
             {{-- Color header --}}
-            <div style="background:{{ $c['bg'] }}; padding:1.5rem 1.5rem 1rem; position:relative; border-bottom:3px solid {{ $c['accent'] }};">
+            <div style="background:{{ $bg }}; padding:1.5rem 1.5rem 1rem; position:relative; border-bottom:3px solid {{ $accent }};">
                 <div style="display:flex; align-items:flex-start; justify-content:space-between;">
                     {{-- Abbreviation badge --}}
-                    <div style="background:{{ $c['accent'] }}; color:#fff; font-weight:800; font-size:1.1rem; letter-spacing:0.05em;
+                    <div style="background:{{ $accent }}; color:#fff; font-weight:800; font-size:1.1rem; letter-spacing:0.05em;
                                 padding:0.4rem 0.85rem; border-radius:8px; display:inline-block; font-family:'Inter',sans-serif;">
-                        {{ $c['abbr'] }}
+                        {{ $abbr }}
                     </div>
                     {{-- ID chip --}}
-                    <span style="font-size:0.7rem; color:{{ $c['accent'] }}; background:{{ $c['light'] }}; padding:0.2rem 0.5rem; border-radius:20px; font-weight:600;">#{{ $dept->id }}</span>
+                    <span style="font-size:0.7rem; color:{{ $accent }}; background:{{ $light }}; padding:0.2rem 0.5rem; border-radius:20px; font-weight:600;">#{{ $dept->id }}</span>
                 </div>
             </div>
 
             {{-- Body --}}
             <div style="padding:1rem 1.5rem 1.25rem;">
-                <p style="font-size:0.9rem; font-weight:600; color:#0D1B35; margin:0 0 1rem; line-height:1.35;">{{ $dept->name }}</p>
+                <p style="font-size:0.9rem; font-weight:600; color:#0D1B35; margin:0 0 0.25rem; line-height:1.35;">{{ $dept->name }}</p>
+                @if($dept->descripccion)
+                    <p style="font-size:0.78rem; color:#64748b; margin:0 0 1rem; line-height:1.45;">{{ $dept->descripccion }}</p>
+                @else
+                    <div style="height:0.55rem;"></div>
+                @endif
 
                 <div style="display:flex; gap:6px;">
                     <a href="{{ route('supervisor.departamentos.edit', $dept->id) }}"
                        style="display:inline-flex; align-items:center; gap:4px; padding:0.35rem 0.75rem; border-radius:6px;
                               font-size:0.8rem; font-weight:500; text-decoration:none; transition:all 0.15s;
-                              border:1.5px solid {{ $c['accent'] }}; color:{{ $c['accent'] }}; background:transparent;"
-                       onmouseover="this.style.background='{{ $c['bg'] }}'" onmouseout="this.style.background='transparent'">
+                              border:1.5px solid {{ $accent }}; color:{{ $accent }}; background:transparent;"
+                       onmouseover="this.style.background='{{ $bg }}'" onmouseout="this.style.background='transparent'">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
                         Editar
                     </a>
                     <form action="{{ route('supervisor.departamentos.destroy', $dept->id) }}" method="POST" style="display:inline;"
-                          onsubmit="return confirm('¿Eliminar «{{ $dept->name }}»?')">
+                          onsubmit="return confirmAction(event, '¿Eliminar «{{ $dept->name }}»?')">
                         @csrf @method('DELETE')
                         <button type="submit"
                                 style="display:inline-flex; align-items:center; gap:4px; padding:0.35rem 0.75rem; border-radius:6px;

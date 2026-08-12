@@ -39,6 +39,7 @@ class AuthenticatedSessionController extends Controller
         return match (true) {
             $user->hasRole('supervisor')   => redirect()->route('supervisor.admins.index'),
             $user->hasRole('admin')        => redirect()->route('dashboard'),
+            $user->hasRole('diseñador')    => redirect()->route('dashboard'),
             $user->hasRole('beneficiario') => redirect()->route('dashboard'),
             default                        => redirect()->route('dashboard'),
         };

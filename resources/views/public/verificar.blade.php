@@ -63,6 +63,26 @@
         .btn-secondary:hover { background: #f9fafb; }
         .footer { text-align: center; margin-top: 1.5rem; font-size: 0.75rem; color: #9ca3af; }
 
+        .firma-banner {
+            display: flex; align-items: flex-start; gap: 12px;
+            background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px;
+            padding: 1rem 1.1rem; margin-bottom: 1.25rem;
+        }
+        .firma-banner-icon {
+            width: 38px; height: 38px; border-radius: 50%; background: #dcfce7;
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .firma-banner-title { font-size: 0.875rem; font-weight: 700; color: #15803d; margin-bottom: 0.2rem; }
+        .firma-banner-detail { font-size: 0.78rem; color: #166534; line-height: 1.5; }
+        .firma-banner-mono { font-family: monospace; font-size: 0.72rem; color: #15803d; word-break: break-all; }
+
+        .no-firma-banner {
+            display: flex; align-items: center; gap: 10px;
+            background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;
+            padding: 0.85rem 1.1rem; margin-bottom: 1.25rem;
+            font-size: 0.8rem; color: #64748b;
+        }
+
         .diploma-visual {
             width: 100%; border-radius: 8px; overflow: hidden;
             box-shadow: 0 2px 12px rgba(0,0,0,0.1); margin-bottom: 1.5rem;
@@ -108,7 +128,7 @@
             <div id="diplomaContent">
                 @if($diplomaHtml)
                     <div id="diplomaVisual" class="diploma-visual" style="overflow:hidden; background:#fff; border:1px solid #e5e7eb; position:relative;">
-                        <div id="diplomaInner" style="transform-origin:top left; width:{{ $diploma->template->canvas_width }}px;">
+                        <div id="diplomaInner" style="transform-origin:top left; width:{{ $diploma->template?->canvas_width ?? 800 }}px;">
                             {!! $diplomaHtml !!}
                         </div>
                     </div>
@@ -150,6 +170,39 @@
                     </div>
                 </div>
 
+                {{-- ─── Sección de firma digital ─── --}}
+                @if($diploma->estaFirmado() && $diploma->firmante)
+                    <div class="firma-banner">
+                        <div class="firma-banner-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.2" style="width:20px;height:20px;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="firma-banner-title">Firmado digitalmente con e.firma SAT</div>
+                            <div class="firma-banner-detail">
+                                <strong>{{ $diploma->firmante->nombre }}</strong> — {{ $diploma->firmante->cargo }}<br>
+                                @if($diploma->firmante->rfc)
+                                    RFC: <span class="firma-banner-mono">{{ $diploma->firmante->rfc }}</span><br>
+                                @endif
+                                @if($diploma->cert_serie_usada)
+                                    Certificado: <span class="firma-banner-mono">{{ $diploma->cert_serie_usada }}</span><br>
+                                @endif
+                                @if($diploma->firmado_en)
+                                    Fecha de firma: {{ $diploma->firmado_en->format('d/m/Y \a \l\a\s H:i') }}
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @else
+                    <div class="no-firma-banner">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0;">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/>
+                        </svg>
+                        Este diploma no cuenta con firma digital e.firma SAT.
+                    </div>
+                @endif
+
                 <div class="actions">
                     @if($diploma->template && $diploma->template->elements->isNotEmpty())
                         <a href="{{ route('verificar.pdf', $diploma->token_qr) }}" class="btn-download" style="margin-top:0;width:auto;">
@@ -177,8 +230,8 @@
 
     <script>
         var tiempoRestante = {{ $tiempoRestante }};
-        var canvasW = {{ $diploma->template->canvas_width }};
-        var canvasH = {{ $diploma->template->canvas_height }};
+        var canvasW = {{ $diploma->template?->canvas_width ?? 800 }};
+        var canvasH = {{ $diploma->template?->canvas_height ?? 600 }};
 
         function actualizarTimer() {
             if (tiempoRestante <= 0) {
@@ -215,5 +268,15 @@
         scaleDiploma();
         window.addEventListener('resize', scaleDiploma);
     </script>
+    <div style="text-align:center;padding:1rem;background:#f8fafc;border-top:1px solid #e2e8f0;">
+        <a href="{{ route('escanear') }}"
+           style="display:inline-flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:#1a56b0;text-decoration:none;font-weight:500;padding:0.5rem 1rem;border-radius:8px;border:1px solid #bfdbfe;background:#fff;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5z"/>
+            </svg>
+            Escanear otro código QR
+        </a>
+    </div>
 </body>
 </html>

@@ -14,14 +14,16 @@
 
     {{-- Perfil del alumno --}}
     <div style="background:#fff; border-radius:12px; border:1px solid #e2e8f0; padding:1.5rem; margin-bottom:1.25rem; display:flex; align-items:center; gap:1.25rem;">
-        <div style="width:52px; height:52px; border-radius:50%; background:var(--brand-bg); display:flex; align-items:center; justify-content:center; font-size:1.25rem; font-weight:700; color:var(--brand); flex-shrink:0;">
-            {{ strtoupper(substr($alumno->full_name ?: $alumno->username, 0, 1)) }}
-        </div>
+        @if($alumno->avatar_url)
+            <img src="{{ $alumno->avatar_url }}" alt="Avatar"
+                 style="width:52px;height:52px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+        @else
+            <div style="width:52px; height:52px; border-radius:50%; background:var(--brand-bg); display:flex; align-items:center; justify-content:center; font-size:1.25rem; font-weight:700; color:var(--brand); flex-shrink:0;">
+                {{ strtoupper(substr($alumno->full_name ?: $alumno->username, 0, 1)) }}
+            </div>
+        @endif
         <div>
             <p style="font-size:1.05rem; font-weight:700; color:#1e293b; margin:0;">{{ $alumno->full_name ?: $alumno->username }}</p>
-            @if($alumno->full_name && $alumno->full_name !== $alumno->username)
-                <p style="font-size:0.8rem; color:#94a3b8; margin:2px 0 0;">@{{ $alumno->username }}</p>
-            @endif
             <p style="font-size:0.82rem; color:#64748b; margin:3px 0 0;">{{ $alumno->department->name ?? '—' }}</p>
         </div>
     </div>

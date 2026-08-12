@@ -3,10 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Diploma;
 use App\Models\DiplomaTemplate;
 use App\Models\Cursos;
-use App\Services\DiplomaRenderer;
 use App\Services\QrGenerator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -15,7 +13,8 @@ class TemplateController extends Controller
 {
     public function __construct()
     {
-        $this->middleware(['auth', 'role:admin']);
+        $this->middleware(['auth', 'role:admin|diseñador'])->except(['preview']);
+        $this->middleware('auth')->only(['preview']);
     }
 
     private function departamentoId()
@@ -32,7 +31,7 @@ class TemplateController extends Controller
         return view('admin.templates.index', compact('templates'));
     }
 
-    public function create(Request $request)
+    public function create()
     {
         $cursos = Cursos::where('departamento_id', $this->departamentoId())
             ->where('estado', 'activo')
@@ -40,12 +39,7 @@ class TemplateController extends Controller
             ->orderBy('nombre')
             ->get();
 
-        $preselectedCurso = null;
-        if ($request->query('curso_id')) {
-            $preselectedCurso = $cursos->find($request->query('curso_id'));
-        }
-
-        return view('admin.templates.create', compact('cursos', 'preselectedCurso'));
+        return view('admin.templates.create', compact('cursos'));
     }
 
     public function store(Request $request)
@@ -69,26 +63,6 @@ class TemplateController extends Controller
 
         return redirect()->route('admin.templates.editor', $template)
             ->with('success', 'Plantilla creada. Ahora puedes diseñarla.');
-    }
-
-    public function createForCourse(Cursos $curso)
-    {
-        abort_unless($curso->departamento_id === $this->departamentoId(), 403);
-
-        if ($curso->template) {
-            return redirect()->route('admin.templates.editor', $curso->template)
-                ->with('info', 'El curso ya tiene una plantilla.');
-        }
-
-        $template = DiplomaTemplate::create([
-            'curso_id'      => $curso->id,
-            'nombre'        => 'Diploma - ' . $curso->nombre,
-            'canvas_width'  => 1920,
-            'canvas_height' => 1358,
-        ]);
-
-        return redirect()->route('admin.templates.editor', $template)
-            ->with('success', 'Plantilla creada para «' . $curso->nombre . '». Ahora puedes diseñarla.');
     }
 
     public function show(DiplomaTemplate $template)
@@ -160,23 +134,48 @@ class TemplateController extends Controller
 
     public function preview(DiplomaTemplate $template)
     {
-        abort_unless($template->curso->departamento_id === $this->departamentoId(), 403);
+        abort_unless(
+            $template->curso->departamento_id === $this->departamentoId()
+            || auth()->user()->hasRole('supervisor'),
+            403
+        );
+
         $template->load('elements', 'curso');
 
-        $diploma = new Diploma();
-        $diploma->token_qr = 'preview';
-        $diploma->folio = 'DIP-PREVIEW';
-        $diploma->fecha_emision = now();
-        $diploma->setRelation('alumno', new \App\Models\User([
-            'full_name' => 'María García López',
-        ]));
-        $diploma->setRelation('curso', $template->curso);
-        $diploma->setRelation('template', $template);
+        $sampleData = [
+            'full_name'        => 'María Guadalupe López Hernández',
+            'curso_nombre'     => $template->curso?->nombre ?? 'Nombre del Curso',
+            'curso_horas'      => (string)($template->curso?->horas ?? '120'),
+            'fecha_inicio'     => $template->curso?->fecha_inicio?->format('d/m/Y') ?? '01/01/2025',
+            'fecha_fin'        => $template->curso?->fecha_fin?->format('d/m/Y') ?? '30/06/2025',
+            'fecha_expedicion' => now()->format('d/m/Y'),
+            'folio'            => 'DIP-EJEMPLO-001',
+        ];
 
-        $renderer = app(DiplomaRenderer::class);
-        $diplomaHtml = $renderer->renderHtml($template, $diploma);
+        $qrGen = app(QrGenerator::class);
+        $qrBase64 = $qrGen->generateBase64(route('verificar', 'preview-ejemplo'));
 
-        return view('admin.templates.preview', compact('template', 'diplomaHtml'));
+        return view('admin.templates.preview', compact('template', 'sampleData', 'qrBase64'));
+    }
+
+    public function createForCourse(Cursos $curso)
+    {
+        abort_unless($curso->departamento_id === $this->departamentoId(), 403);
+
+        if ($curso->template) {
+            return redirect()->route('admin.templates.editor', $curso->template)
+                ->with('info', 'Este curso ya tiene una plantilla. Redirigiendo al editor.');
+        }
+
+        $template = DiplomaTemplate::create([
+            'curso_id'      => $curso->id,
+            'nombre'        => 'Diploma — ' . $curso->nombre,
+            'canvas_width'  => 1920,
+            'canvas_height' => 1080,
+        ]);
+
+        return redirect()->route('admin.templates.editor', $template)
+            ->with('success', 'Plantilla creada automáticamente. Ahora puedes diseñarla.');
     }
 
     public function uploadBackground(Request $request, DiplomaTemplate $template)
@@ -271,7 +270,7 @@ class TemplateController extends Controller
                 'y'           => $item['y'],
                 'width'       => $item['width'],
                 'height'      => $item['height'],
-                'config_json' => $item['config_json'] ? json_decode($item['config_json'], true) : null,
+                'config_json' => $item['config_json'] ?? null,
                 'orden'       => $item['orden'],
             ];
 

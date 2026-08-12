@@ -20,6 +20,7 @@ class User extends Authenticatable
         'password',
         'role',
         'department_id',
+        'avatar',
     ];
 
     protected $hidden = [
@@ -40,6 +41,11 @@ class User extends Authenticatable
         return $this->belongsTo(Departamento::class);
     }
 
+    public function diplomas()
+    {
+        return $this->hasMany(Diploma::class, 'user_id');
+    }
+
     public function cursos()
     {
         return $this->belongsToMany(Cursos::class, 'curso_usuario', 'user_id', 'curso_id')
@@ -50,6 +56,11 @@ class User extends Authenticatable
     public function getDisplayNameAttribute(): string
     {
         return $this->full_name ?? $this->username ?? '—';
+    }
+
+    public function getAvatarUrlAttribute(): string
+    {
+        return $this->avatar ? asset('storage/avatars/'.$this->avatar) : '';
     }
 
     public function scopeAlumnos(Builder $query): Builder

@@ -41,21 +41,10 @@
     <div class="breadcrumb">
         <a href="{{ route('admin.templates.index') }}">Plantillas</a>
         <span class="breadcrumb-sep">/</span>
-        @if($preselectedCurso ?? false)
-            <a href="{{ route('admin.cursos.show', $preselectedCurso) }}">{{ $preselectedCurso->nombre }}</a>
-            <span class="breadcrumb-sep">/</span>
-        @endif
         <span>Nueva</span>
     </div>
 
     <div class="form-card">
-        @if($preselectedCurso ?? false)
-            <div style="background:#EFF6FF; border:1px solid #BFDBFE; border-radius:9px; padding:0.7rem 1rem; margin-bottom:1.25rem; font-size:0.82rem; color:#1E40AF; display:flex; align-items:center; gap:0.5rem;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
-                Creando plantilla para <strong>{{ $preselectedCurso->nombre }}</strong>
-            </div>
-        @endif
-
         <form method="POST" action="{{ route('admin.templates.store') }}">
             @csrf
 
@@ -64,8 +53,7 @@
                 <select name="curso_id" required class="form-select">
                     <option value="">Seleccionar curso…</option>
                     @foreach($cursos as $curso)
-                        <option value="{{ $curso->id }}"
-                            @selected((old('curso_id') == $curso->id) || (($preselectedCurso ?? false) && $preselectedCurso->id == $curso->id))>
+                        <option value="{{ $curso->id }}" @selected(old('curso_id') == $curso->id)>
                             {{ $curso->nombre }}
                         </option>
                     @endforeach

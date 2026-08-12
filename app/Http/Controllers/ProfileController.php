@@ -7,6 +7,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class ProfileController extends Controller
@@ -46,6 +47,10 @@ class ProfileController extends Controller
             'password' => ['required', 'current_password'],
         ]);
 
+        if ($request->user()->avatar) {
+            Storage::disk('public')->delete('avatars/'.$request->user()->avatar);
+        }
+
         $user = $request->user();
 
         Auth::logout();
@@ -56,5 +61,25 @@ class ProfileController extends Controller
         $request->session()->regenerateToken();
 
         return Redirect::to('/');
+    }
+
+    public function uploadAvatar(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'avatar' => ['required', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
+        ]);
+
+        $user = $request->user();
+
+        if ($user->avatar) {
+            Storage::disk('public')->delete('avatars/'.$user->avatar);
+        }
+
+        $filename = 'user_'.$user->id.'_'.time().'.'.$request->file('avatar')->extension();
+        $request->file('avatar')->storeAs('avatars', $filename, 'public');
+
+        $user->update(['avatar' => $filename]);
+
+        return Redirect::route('profile.edit')->with('toast', ['message' => 'Foto de perfil actualizada.', 'type' => 'success']);
     }
 }

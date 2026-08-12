@@ -3,7 +3,10 @@
         <h2>Cursos</h2>
     </x-slot>
 
-    @php $viewMode = request('view', 'grid'); @endphp
+    @php
+        $viewMode = request('view', 'grid');
+        $isAdmin = auth()->user()->hasRole('admin');
+    @endphp
 
     <style>
         /* ── Buttons ── */
@@ -115,12 +118,14 @@
                 {{ $cursos->count() }} curso(s) en total
             </p>
         </div>
+        @if($isAdmin)
         <a href="{{ route('admin.cursos.create') }}" class="btn-primary">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:15px;height:15px;">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
             </svg>
             Nuevo Curso
         </a>
+        @endif
     </div>
 
     {{-- Filter bar --}}
@@ -181,7 +186,7 @@
             </p>
             @if(request('search') || request('estado'))
                 <a href="{{ route('admin.cursos.index') }}" style="font-size:0.82rem; color: var(--brand);">Limpiar filtros</a>
-            @else
+            @elseif($isAdmin)
                 <a href="{{ route('admin.cursos.create') }}" class="btn-primary" style="margin-top:1rem; display:inline-flex;">Crear primer curso</a>
             @endif
         </div>
@@ -189,11 +194,10 @@
     @elseif($viewMode === 'list')
         {{-- ── List view ── --}}
         <div class="data-card">
-                    <table class="data-table">
+            <table class="data-table">
                 <thead>
                     <tr>
                         <th>Nombre</th>
-                        <th>Plantilla</th>
                         <th>Horas</th>
                         <th>Fechas</th>
                         <th>Estado</th>
@@ -213,12 +217,11 @@
                     <tr>
                         <td>
                             <div style="font-weight:600; color:#1E293B;">{{ $curso->nombre }}</div>
-                        </td>
-                        <td>
                             @if($curso->template)
-                                <span class="badge badge-green">Creada</span>
-                            @else
-                                <span class="badge badge-gray">Sin plantilla</span>
+                                <span class="badge badge-brand" style="margin-top:4px;">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:10px;height:10px;margin-right:3px;"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+                                    Plantilla
+                                </span>
                             @endif
                         </td>
                         <td style="color:#64748b;">{{ $curso->horas ? $curso->horas.' h' : '—' }}</td>
@@ -232,18 +235,17 @@
                         </td>
                         <td><span class="badge {{ $badgeClass }}">{{ ucfirst($curso->estado) }}</span></td>
                         <td style="text-align:right;">
-                            <div style="display:flex; gap:0.75rem; justify-content:flex-end; align-items:center; flex-wrap:wrap;">
+                            <div style="display:flex; gap:1rem; justify-content:flex-end; align-items:center;">
                                 <a href="{{ route('admin.cursos.show', $curso) }}" class="action-link link-view">Ver</a>
+                                @if($isAdmin)
                                 <a href="{{ route('admin.cursos.edit', $curso) }}" class="action-link link-edit">Editar</a>
-                                @if($curso->template)
-                                    <a href="{{ route('admin.templates.editor', $curso->template) }}" class="action-link link-edit">Diseñar</a>
-                                    <a href="{{ route('admin.diplomas.mass.show', ['curso' => $curso->id, 'template' => $curso->template->id]) }}" class="action-link link-alum">Generar</a>
-                                @endif
+                                <a href="{{ route('admin.cursos.alumnos.index', $curso) }}" class="action-link link-alum">Alumnos</a>
                                 <form action="{{ route('admin.cursos.destroy', $curso) }}" method="POST"
-                                      onsubmit="return confirm('¿Eliminar «{{ $curso->nombre }}»?')" style="margin:0;">
+                                      onsubmit="return confirmAction(event, '¿Eliminar «{{ $curso->nombre }}»?')" style="margin:0;">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="link-delete">Eliminar</button>
                                 </form>
+                                @endif
                             </div>
                         </td>
                     </tr>
@@ -272,13 +274,14 @@
                         <span class="badge {{ $badgeClass }}" style="flex-shrink:0;">{{ ucfirst($curso->estado) }}</span>
                     </div>
 
-                    <div style="margin-bottom:0.5rem;">
-                        @if($curso->template)
-                            <span class="badge badge-green">Plantilla Creada</span>
-                        @else
-                            <span class="badge badge-gray">Sin plantilla</span>
-                        @endif
-                    </div>
+                    @if($curso->template)
+                        <div style="margin-bottom:0.5rem;">
+                            <span class="badge badge-brand">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:10px;height:10px;margin-right:3px;"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+                                Plantilla asignada
+                            </span>
+                        </div>
+                    @endif
 
                     <p class="curso-card-desc">{{ $curso->descripcion ?: 'Sin descripción' }}</p>
 
@@ -312,17 +315,16 @@
 
                 <div class="curso-card-footer">
                     <a href="{{ route('admin.cursos.show', $curso) }}" class="action-link link-view">Ver</a>
+                    @if($isAdmin)
                     <a href="{{ route('admin.cursos.edit', $curso) }}" class="action-link link-edit">Editar</a>
-                    @if($curso->template)
-                        <a href="{{ route('admin.templates.editor', $curso->template) }}" class="action-link link-edit">Diseñar</a>
-                        <a href="{{ route('admin.diplomas.mass.show', ['curso' => $curso->id, 'template' => $curso->template->id]) }}" class="action-link link-alum">Generar</a>
-                    @endif
+                    <a href="{{ route('admin.cursos.alumnos.index', $curso) }}" class="action-link link-alum">Alumnos</a>
                     <form action="{{ route('admin.cursos.destroy', $curso) }}" method="POST"
-                          onsubmit="return confirm('¿Eliminar «{{ $curso->nombre }}»?')"
+                          onsubmit="return confirmAction(event, '¿Eliminar «{{ $curso->nombre }}»?')"
                           style="margin:0; margin-left:auto;">
                         @csrf @method('DELETE')
                         <button type="submit" class="link-delete">Eliminar</button>
                     </form>
+                    @endif
                 </div>
             </div>
             @endforeach

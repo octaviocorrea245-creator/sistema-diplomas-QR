@@ -108,7 +108,7 @@
                         <a href="{{ route('admin.templates.show', $template) }}" class="link-view">Ver</a>
                         <a href="{{ route('admin.templates.edit', $template) }}" class="link-edit">Editar</a>
                         <form action="{{ route('admin.templates.destroy', $template) }}" method="POST"
-                              onsubmit="return confirm('¿Eliminar «{{ $template->nombre }}»?')" style="display:contents;">
+                              onsubmit="return confirmAction(event, '¿Eliminar «{{ $template->nombre }}»?')" style="display:contents;">
                             @csrf @method('DELETE')
                             <button type="submit" class="link-delete">Eliminar</button>
                         </form>

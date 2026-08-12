@@ -12,7 +12,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Revisa certificados de e-firma cada lunes a las 8 AM
+        $schedule->command('firma:check-expiry')->weeklyOn(1, '8:00');
     }
 
     /**

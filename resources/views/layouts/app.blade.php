@@ -139,9 +139,105 @@ if (auth()->check() && auth()->user()->hasRole('admin') && auth()->user()->depar
             <main>{{ $slot }}</main>
         </div>
 
+        {{-- Confirm Modal --}}
+        <div id="confirmModal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;">
+            <div style="background:#fff;border-radius:16px;width:90%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.2);overflow:hidden;">
+                <div style="padding:1.5rem 1.5rem 0.5rem;text-align:center;">
+                    <div style="width:48px;height:48px;border-radius:50%;background:#FEF2F2;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" style="width:24px;height:24px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+                        </svg>
+                    </div>
+                    <p id="confirmMessage" style="font-size:0.95rem;color:#1e293b;font-weight:500;margin:0 0 0.25rem;line-height:1.5;"></p>
+                </div>
+                <div style="padding:0.75rem 1.5rem 1.5rem;display:flex;gap:0.75rem;">
+                    <button id="confirmCancelBtn" type="button" onclick="closeConfirmModal()"
+                            style="flex:1;padding:0.6rem 1rem;border:1px solid #DDE3EF;border-radius:10px;background:#fff;color:#64748b;font-size:0.85rem;font-weight:600;cursor:pointer;">
+                        Cancelar
+                    </button>
+                    <button id="confirmAcceptBtn" type="button"
+                            style="flex:1;padding:0.6rem 1rem;border:none;border-radius:10px;background:#DC2626;color:#fff;font-size:0.85rem;font-weight:600;cursor:pointer;">
+                        Aceptar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {{-- Toast Container --}}
+        <div id="toastContainer" style="position:fixed;top:1rem;right:1rem;z-index:99998;display:flex;flex-direction:column;gap:0.5rem;"></div>
+
         <script>
             function openSidebar()  { document.getElementById('app-sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('visible'); }
             function closeSidebar() { document.getElementById('app-sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('visible'); }
+
+            var pendingForm = null;
+
+            function confirmAction(event, message, options) {
+                if (event) event.preventDefault();
+                var form = event ? (event.target.tagName === 'FORM' ? event.target : event.target.closest('form')) : null;
+                pendingForm = form;
+                if (!form) return false;
+
+                document.getElementById('confirmMessage').textContent = message;
+                var modal = document.getElementById('confirmModal');
+                modal.style.display = 'flex';
+
+                var acceptBtn = document.getElementById('confirmAcceptBtn');
+                var cancelBtn = document.getElementById('confirmCancelBtn');
+
+                var btnColor = options && options.btnColor ? options.btnColor : '#DC2626';
+                var acceptText = options && options.acceptText ? options.acceptText : 'Aceptar';
+                var cancelText = options && options.cancelText ? options.cancelText : 'Cancelar';
+
+                acceptBtn.textContent = acceptText;
+                acceptBtn.style.background = btnColor;
+                cancelBtn.textContent = cancelText;
+
+                if (options && options.hideCancel) {
+                    cancelBtn.style.display = 'none';
+                } else {
+                    cancelBtn.style.display = '';
+                }
+            }
+
+            document.getElementById('confirmAcceptBtn').addEventListener('click', function() {
+                var form = pendingForm;
+                document.getElementById('confirmModal').style.display = 'none';
+                pendingForm = null;
+                if (form) {
+                    setTimeout(function() { form.submit(); }, 100);
+                }
+            });
+
+            function closeConfirmModal() {
+                document.getElementById('confirmModal').style.display = 'none';
+                pendingForm = null;
+            }
+
+            document.addEventListener('click', function(e) {
+                var modal = document.getElementById('confirmModal');
+                if (e.target === modal) closeConfirmModal();
+            });
+
+            function showToast(message, type) {
+                type = type || 'success';
+                var container = document.getElementById('toastContainer');
+                var colors = { success: 'bg:#DCFCE7;color:#166534', error: 'bg:#FEE2E2;color:#991B1B', info: 'bg:#EFF6FF;color:#1D4ED8', warning: 'bg:#FEF3C7;color:#92400E' };
+                var c = colors[type] || colors.info;
+                var toast = document.createElement('div');
+                toast.style.cssText = c + ';padding:0.75rem 1.25rem;border-radius:10px;font-size:0.85rem;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,0.1);display:flex;align-items:center;gap:0.75rem;max-width:360px;animation:fadeIn 0.2s ease;';
+                toast.innerHTML = '<span style="flex:1;">' + message + '</span><button onclick="this.parentElement.remove()" style="border:none;background:none;cursor:pointer;font-size:1.1rem;line-height:1;opacity:0.6;">&times;</button>';
+                container.appendChild(toast);
+                setTimeout(function() { if (toast.parentElement) { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; setTimeout(function() { toast.remove(); }, 300); } }, 5000);
+            }
+
+            @if(session('toast'))
+            (function() { showToast('{{ session('toast')['message'] }}', '{{ session('toast')['type'] }}'); })();
+            @endif
+
+            var style = document.createElement('style');
+            style.textContent = '@keyframes fadeIn { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }';
+            document.head.appendChild(style);
         </script>
     </body>
 </html>

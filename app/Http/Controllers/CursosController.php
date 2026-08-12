@@ -2,15 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\NotifySupervisors;
 use App\Http\Controllers\Controller;
 use App\Models\Cursos;
+use App\Models\Diploma;
+use App\Models\Firmante;
 use Illuminate\Http\Request;
 
 class CursosController extends Controller
 {
     public function __construct()
     {
-        $this->middleware(['auth', 'role:admin']);
+        $this->middleware(['auth', 'role:admin|diseñador']);
     }
 
     public function index(Request $request)
@@ -50,7 +53,7 @@ class CursosController extends Controller
             'estado'       => 'required|in:borrador,activo,finalizado,cancelado',
         ]);
 
-        Cursos::create([
+        $curso = Cursos::create([
             'departamento_id' => auth()->user()->department_id, // Se asigna automáticamente
             'nombre'          => $request->nombre,
             'descripcion'     => $request->descripcion,
@@ -60,8 +63,15 @@ class CursosController extends Controller
             'estado'          => $request->estado,
         ]);
 
+        NotifySupervisors::send(
+            $curso->departamento_id,
+            'curso_nuevo',
+            "Nuevo curso creado: {$curso->nombre}.",
+            route('supervisor.cursos.show', $curso->id)
+        );
+
         return redirect()->route('admin.cursos.index')
-                        ->with('success', 'Curso creado correctamente.');
+                         ->with('success', 'Curso creado correctamente.');
     }
 
     public function edit($id)
@@ -92,10 +102,29 @@ class CursosController extends Controller
             'estado'       => 'required|in:borrador,activo,finalizado,cancelado',
         ]);
 
+        $oldEstado = $curso->estado;
         $curso->update($request->only([
             'nombre', 'descripcion', 'horas',
             'fecha_inicio', 'fecha_fin', 'estado',
         ]));
+
+        if ($curso->estado === 'finalizado' && $oldEstado !== 'finalizado') {
+            NotifySupervisors::send(
+                $curso->departamento_id,
+                'curso_finalizado',
+                "Curso finalizado: {$curso->nombre}.",
+                route('supervisor.cursos.show', $curso->id)
+            );
+        }
+
+        if ($curso->estado === 'activo' && $oldEstado !== 'activo') {
+            NotifySupervisors::send(
+                $curso->departamento_id,
+                'curso_activo',
+                "Curso activado: {$curso->nombre}.",
+                route('supervisor.cursos.show', $curso->id)
+            );
+        }
 
         return redirect()->route('admin.cursos.index')
                         ->with('success', 'Curso actualizado correctamente.');
@@ -130,15 +159,10 @@ class CursosController extends Controller
             'baja'       => (clone $alumnosQuery)->wherePivot('estado', 'baja')->count(),
         ];
 
-        $diplomas = \App\Models\Diploma::where('curso_id', $cursos->id)
-            ->with('alumno', 'template')
-            ->orderBy('created_at', 'desc')
-           ->get();
+        $alumnos = (clone $alumnosQuery)->orderBy('full_name')->get();
+        $diplomasCurso = Diploma::where('curso_id', $cursos->id)->get()->keyBy('user_id');
+        $firmantes = Firmante::where('departamento_id', $cursos->departamento_id)->disponibles()->orderBy('nombre')->get();
 
-        $eligibleAlumnos = $cursos->alumnos()
-            ->wherePivotIn('estado', ['inscrito', 'en_curso', 'completado'])
-            ->count();
-
-        return view('admin.cursos.show', compact('cursos', 'stats', 'diplomas', 'eligibleAlumnos'));
+        return view('admin.cursos.show', compact('cursos', 'stats', 'alumnos', 'diplomasCurso', 'firmantes'));
     }
 }

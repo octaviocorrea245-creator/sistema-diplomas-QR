@@ -51,7 +51,7 @@
                         <a href="{{ route('admin.plantillas.show', $plantilla) }}" class="text-blue-500 hover:underline">Ver</a>
                         <a href="{{ route('admin.plantillas.edit', $plantilla) }}" class="text-yellow-600 hover:underline">Editar</a>
                         <form action="{{ route('admin.plantillas.destroy', $plantilla) }}" method="POST"
-                              onsubmit="return confirm('¿Eliminar esta plantilla?')">
+                              onsubmit="return confirmAction(event, '¿Eliminar esta plantilla?')">
                             @csrf @method('DELETE')
                             <button type="submit" class="text-red-600 hover:underline">Eliminar</button>
                         </form>

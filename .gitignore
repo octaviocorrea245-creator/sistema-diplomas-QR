@@ -16,3 +16,6 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+
+ejemplo_firma.key
+ejemplo_firma.cer

@@ -8,82 +8,17 @@ use App\Models\DiplomaTemplateElement;
 
 class DiplomaRenderer
 {
-    private function imageToBase64(string $path): string
+    public function renderHtml(DiplomaTemplate $template, Diploma $diploma): string
     {
-        $fullPath = public_path($path);
-        if (!file_exists($fullPath)) {
-            return '';
-        }
-        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
-        $mime = match ($ext) {
-            'png' => 'image/png',
-            'jpg', 'jpeg' => 'image/jpeg',
-            'gif' => 'image/gif',
-            'webp' => 'image/webp',
-            default => 'image/png',
-        };
-        $data = file_get_contents($fullPath);
-        if ($data === false) {
-            return '';
-        }
-        return 'data:' . $mime . ';base64,' . base64_encode($data);
-    }
-
-    public function renderHtml(DiplomaTemplate $template, Diploma $diploma, bool $forPdf = false, bool $fullDocument = true): string
-    {
-        $content = $this->renderContent($template, $diploma, $forPdf);
-        if (!$fullDocument) {
-            return $content;
-        }
-
-        $pageCss = '';
-        $bodyCss = '';
-        if ($forPdf) {
-            $pageCss = "@page { margin: 0; size: 841.89pt 595.28pt; }";
-            $bodyCss = 'width:841.89pt;height:595.28pt;margin:0;overflow:hidden;background:#fff;';
-        }
-
-        return <<<HTML
-<!DOCTYPE html>
-<html><head><meta charset="utf-8">
-<style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  {$pageCss}
-  body { {$bodyCss} }
-  .el { position: absolute; overflow: hidden; }
-</style>
-</head><body>
-{$content}
-</body></html>
-HTML;
-    }
-
-    public function renderContent(DiplomaTemplate $template, Diploma $diploma, bool $forPdf = false): string
-    {
+        $alumno = $diploma->alumno;
+        $curso = $diploma->curso;
         $w = $template->canvas_width;
         $h = $template->canvas_height;
-        $unit = 'px';
-        $scaleX = 1.0;
-        $scaleY = 1.0;
 
-        if ($forPdf) {
-            $unit = 'pt';
-            $scaleX = 841.89 / $w;
-            $scaleY = 595.28 / $h;
-        }
-
-        $bgHtml = '';
+        $bgStyle = '';
         if ($template->background_image) {
-            $base64 = $this->imageToBase64($template->background_image);
-            if ($base64) {
-                $bgHtml = '<img src="' . $base64 . '" style="position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;pointer-events:none;">';
-            }
-        }
-
-        if ($forPdf) {
-            $contentStyle = "position:absolute;left:0{$unit};top:0{$unit};width:841.89{$unit};height:595.28{$unit};overflow:hidden;";
-        } else {
-            $contentStyle = "position:relative;width:{$w}px;height:{$h}px;overflow:hidden;";
+            $bgUrl = asset($template->background_image);
+            $bgStyle = "background: url('{$bgUrl}') no-repeat center/cover;";
         }
 
         $qrGenerator = app(QrGenerator::class);
@@ -91,43 +26,38 @@ HTML;
 
         $elementsHtml = '';
         foreach ($template->elements as $el) {
-            $elementsHtml .= $this->renderElement($el, $diploma, $qrBase64, $scaleX, $scaleY, $unit);
-        }
-
-        if ($forPdf) {
-            return <<<HTML
-<div style="position:relative;width:841.89{$unit};height:595.28{$unit};overflow:hidden;">
-{$bgHtml}
-<div style="{$contentStyle}">
-{$elementsHtml}
-</div>
-</div>
-HTML;
+            $elementsHtml .= $this->renderElement($el, $diploma, $qrBase64);
         }
 
         return <<<HTML
-<div style="{$contentStyle}">
-{$bgHtml}
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  .diploma-wrapper {
+    width: {$w}px; height: {$h}px; position: relative; overflow: hidden;
+    {$bgStyle}
+  }
+  .diploma-wrapper .el {
+    position: absolute; overflow: hidden;
+  }
+</style>
+</head><body>
+<div class="diploma-wrapper">
 {$elementsHtml}
 </div>
+</body></html>
 HTML;
     }
 
-    private function renderElement(DiplomaTemplateElement $el, Diploma $diploma, string $qrBase64, float $scaleX, float $scaleY, string $unit): string
+    private function renderElement(DiplomaTemplateElement $el, Diploma $diploma, string $qrBase64): string
     {
-        $config = $el->config_json;
-        if (is_string($config)) {
-            $config = json_decode($config, true) ?? [];
-        } elseif (is_object($config)) {
-            $config = (array) $config;
-        } elseif (!is_array($config)) {
-            $config = [];
-        }
-        $left = round($el->x * $scaleX, 4);
-        $top = round($el->y * $scaleY, 4);
-        $width = round($el->width * $scaleX, 4);
-        $height = round($el->height * $scaleY, 4);
-        $fontSize = round(($config['fontSize'] ?? 32) * $scaleX, 4);
+        $config = $el->config_json ?? [];
+        $left = $el->x;
+        $top = $el->y;
+        $width = $el->width;
+        $height = $el->height;
+        $fontSize = $config['fontSize'] ?? 32;
         $color = $config['fill'] ?? '#000000';
         $align = $config['textAlign'] ?? 'left';
         $bold = !empty($config['bold']) ? 'bold' : 'normal';
@@ -135,32 +65,26 @@ HTML;
 
         switch ($el->tipo) {
             case 'text':
-                $text = e($config['text'] ?? '');
-                $text = preg_replace_callback('/\{\{(\w+)\}\}/', function ($m) use ($diploma) {
-                    return $this->resolveVariable($m[1], $diploma);
-                }, $text);
+                $text = e($config['text'] ?? 'Texto');
                 return <<<HTML
-<div class="el" style="left:{$left}{$unit};top:{$top}{$unit};width:{$width}{$unit};height:{$height}{$unit};
-  font-size:{$fontSize}{$unit};color:{$color};text-align:{$align};font-weight:{$bold};font-style:{$italic};">
+<div class="el" style="left:{$left}px;top:{$top}px;width:{$width}px;height:{$height}px;
+  font-size:{$fontSize}px;color:{$color};text-align:{$align};font-weight:{$bold};font-style:{$italic};">
   {$text}
 </div>
 HTML;
 
             case 'variable':
                 $value = $this->resolveVariable($el->variable, $diploma);
-                $value = preg_replace_callback('/\{\{(\w+)\}\}/', function ($m) use ($diploma) {
-                    return $this->resolveVariable($m[1], $diploma);
-                }, $value);
                 return <<<HTML
-<div class="el" style="left:{$left}{$unit};top:{$top}{$unit};width:{$width}{$unit};height:{$height}{$unit};
-  font-size:{$fontSize}{$unit};color:{$color};text-align:{$align};font-weight:{$bold};font-style:{$italic};">
+<div class="el" style="left:{$left}px;top:{$top}px;width:{$width}px;height:{$height}px;
+  font-size:{$fontSize}px;color:{$color};text-align:{$align};font-weight:{$bold};font-style:{$italic};">
   {$value}
 </div>
 HTML;
 
             case 'qr':
                 return <<<HTML
-<div class="el" style="left:{$left}{$unit};top:{$top}{$unit};width:{$width}{$unit};height:{$height}{$unit};">
+<div class="el" style="left:{$left}px;top:{$top}px;width:{$width}px;height:{$height}px;">
   <img src="{$qrBase64}" style="width:100%;height:100%;object-fit:contain;">
 </div>
 HTML;
@@ -168,22 +92,24 @@ HTML;
             case 'rect':
                 $fill = $config['fill'] ?? 'transparent';
                 $stroke = $config['stroke'] ?? '#000000';
-                $strokeW = round(($config['strokeWidth'] ?? 1) * $scaleX, 4);
-                $rx = round(($config['rx'] ?? 0) * $scaleX, 4);
+                $strokeW = $config['strokeWidth'] ?? 1;
+                $rx = $config['rx'] ?? 0;
                 return <<<HTML
-<div class="el" style="left:{$left}{$unit};top:{$top}{$unit};width:{$width}{$unit};height:{$height}{$unit};
-  background:{$fill};border:{$strokeW}{$unit} solid {$stroke};border-radius:{$rx}{$unit};">
+<div class="el" style="left:{$left}px;top:{$top}px;width:{$width}px;height:{$height}px;
+  background:{$fill};border:{$strokeW}px solid {$stroke};border-radius:{$rx}px;">
 </div>
 HTML;
 
             case 'line':
                 $stroke = $config['stroke'] ?? '#000000';
-                $strokeW = round(($config['strokeWidth'] ?? 2) * $scaleX, 4);
+                $strokeW = $config['strokeWidth'] ?? 2;
+                $x2 = $left + $width;
+                $y2 = $top + $height;
                 return <<<HTML
-<div class="el" style="left:{$left}{$unit};top:{$top}{$unit};width:{$width}{$unit};height:{$height}{$unit};">
-  <svg width="{$width}{$unit}" height="{$height}{$unit}" style="overflow:visible;">
-    <line x1="0" y1="0" x2="{$width}{$unit}" y2="{$height}{$unit}"
-      stroke="{$stroke}" stroke-width="{$strokeW}{$unit}" />
+<div class="el" style="left:{$left}px;top:{$top}px;width:{$width}px;height:{$height}px;">
+  <svg width="{$width}" height="{$height}" style="overflow:visible;">
+    <line x1="0" y1="0" x2="{$width}" y2="{$height}"
+      stroke="{$stroke}" stroke-width="{$strokeW}" />
   </svg>
 </div>
 HTML;
@@ -192,7 +118,7 @@ HTML;
                 $src = $config['src'] ?? '';
                 if (!$src) return '';
                 return <<<HTML
-<div class="el" style="left:{$left}{$unit};top:{$top}{$unit};width:{$width}{$unit};height:{$height}{$unit};">
+<div class="el" style="left:{$left}px;top:{$top}px;width:{$width}px;height:{$height}px;">
   <img src="{$src}" style="width:100%;height:100%;object-fit:contain;">
 </div>
 HTML;

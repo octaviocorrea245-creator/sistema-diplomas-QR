@@ -408,6 +408,12 @@
                         </div>
                         <span>Imagen</span>
                     </div>
+                    <div draggable="true" ondragstart="onDragStart(event, 'firma')" onclick="addFirma()" class="el-card">
+                        <div class="el-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"/></svg>
+                        </div>
+                        <span>Firma</span>
+                    </div>
                 </div>
 
                 <div class="wp-section-divider"></div>
@@ -523,6 +529,18 @@
                             <p style="font-size:11.5px;color:#646970;margin:0;line-height:1.5;">El QR se genera automáticamente al emitir el diploma con el enlace de verificación único.</p>
                         </div>
                     </div>
+                    <div class="insp-panel" id="propSecFirma" style="display:none;">
+                        <div class="insp-panel-header">Cuadro de firma</div>
+                        <div class="insp-panel-body">
+                            <p style="font-size:11px;color:#646970;margin:0 0 10px;line-height:1.5;">Al emitir el diploma muestra el nombre y cargo del firmante con una línea.</p>
+                            <label style="display:flex;align-items:center;gap:6px;margin-bottom:7px;font-size:12px;color:#1e1e1e;cursor:pointer;">
+                                <input type="checkbox" id="firmaShowName" checked onchange="updateFirmaProp('mostrar_nombre',this.checked)"> Mostrar nombre
+                            </label>
+                            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#1e1e1e;cursor:pointer;">
+                                <input type="checkbox" id="firmaShowCargo" checked onchange="updateFirmaProp('mostrar_cargo',this.checked)"> Mostrar cargo
+                            </label>
+                        </div>
+                    </div>
                 </div>
 
                 {{-- ── Estilo ── --}}
@@ -609,6 +627,21 @@
                                 <div>
                                     <label class="wp-label">Grosor</label>
                                     <input type="number" id="propLineWidth" value="2" min="1" max="50" oninput="updateProp('strokeWidth', this.value)" class="wp-input">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="insp-panel" id="styleSecFirma" style="display:none;">
+                        <div class="insp-panel-header">Texto de la firma</div>
+                        <div class="insp-panel-body">
+                            <div class="wp-row">
+                                <div>
+                                    <label class="wp-label">Color</label>
+                                    <input type="color" id="firmaColor" value="#1E293B" oninput="updateFirmaProp('fill',this.value)" class="color-swatch" style="width:100%;height:34px;">
+                                </div>
+                                <div>
+                                    <label class="wp-label">Tamaño</label>
+                                    <input type="number" id="firmaFontSize" value="11" min="6" max="60" oninput="updateFirmaProp('fontSize',parseInt(this.value))" class="wp-input">
                                 </div>
                             </div>
                         </div>
@@ -801,6 +834,12 @@
                     obj = new fabric.Textbox(config.text||'Texto',{left:el.x,top:el.y,width:el.width,height:el.height,fontSize:config.fontSize||32,fill:config.fill||'#000000',textAlign:config.textAlign||'left',fontFamily:config.fontFamily||'Arial',fontStyle:config.italic?'italic':'normal',fontWeight:config.bold?'bold':'normal',underline:config.underline||false,splitByGrapheme:true}); break;
                 case 'qr':
                     obj = new fabric.Rect({left:el.x,top:el.y,width:el.width||120,height:el.height||120,fill:'#f8f8f8',stroke:'#999',strokeWidth:1,strokeDashArray:[5,3],rx:2,ry:2}); break;
+                case 'firma': {
+                    const cfg=el.config_json&&typeof el.config_json==='string'?JSON.parse(el.config_json):el.config_json||{};
+                    obj=new fabric.Rect({left:el.x,top:el.y,width:el.width||220,height:el.height||80,fill:'#F0F9FF',stroke:'#0EA5E9',strokeWidth:1,strokeDashArray:[4,3],rx:3,ry:3});
+                    obj._mostrarNombre=cfg.mostrar_nombre??true; obj._mostrarCargo=cfg.mostrar_cargo??true;
+                    obj._firmaColor=cfg.fill||'#1E293B'; obj._firmaFontSize=cfg.fontSize||11;
+                    break; }
                 case 'rect':
                     obj = new fabric.Rect({left:el.x,top:el.y,width:el.width,height:el.height,fill:config.fill||'transparent',stroke:config.stroke||'#000',strokeWidth:config.strokeWidth||1,rx:config.rx||0,ry:config.ry||0}); break;
                 case 'line':
@@ -818,6 +857,7 @@
             switch(tipo) {
                 case 'text': obj=new fabric.Textbox(opts.text||'Texto',{left:x,top:y,width:300,height:60,fontSize:32,fill:'#000',splitByGrapheme:true}); break;
                 case 'qr': obj=new fabric.Rect({left:x,top:y,width:120,height:120,fill:'#f8f8f8',stroke:'#999',strokeWidth:1,strokeDashArray:[5,3],rx:2,ry:2}); break;
+                case 'firma': obj=new fabric.Rect({left:x,top:y,width:220,height:80,fill:'#F0F9FF',stroke:'#0EA5E9',strokeWidth:1,strokeDashArray:[4,3],rx:3,ry:3}); obj._mostrarNombre=true; obj._mostrarCargo=true; obj._firmaColor='#1E293B'; obj._firmaFontSize=11; break;
                 case 'rect': obj=new fabric.Rect({left:x,top:y,width:200,height:100,fill:'transparent',stroke:'#000',strokeWidth:1}); break;
                 case 'line': obj=new fabric.Line([x,y,x+200,y],{stroke:'#000',strokeWidth:2}); break;
                 case 'image': document.getElementById('imageInput').click(); return null;
@@ -832,6 +872,7 @@
             toast('Variable añadida: @{{'+key+'}}','success');
         }
         function addQr()       { makeObj('qr');       toast('QR añadido','success'); }
+        function addFirma()    { makeObj('firma');    toast('Cuadro de firma añadido','success'); }
         function addRect()     { makeObj('rect');     toast('Figura añadida','success'); }
         function addLine()     { makeObj('line');     toast('Línea añadida','success'); }
         function addImage()    { document.getElementById('imageInput').click(); }
@@ -894,6 +935,34 @@
         c.on('selection:created', e=>showProps(e.selected[0]));
         c.on('selection:updated', e=>showProps(e.selected[0]));
         c.on('selection:cleared', ()=>hideProps());
+
+        // Dibuja la línea y etiqueta de los elementos tipo 'firma' encima del canvas
+        c.on('after:render', function() {
+            const ctx = c.contextContainer;
+            const vt  = c.viewportTransform || [1,0,0,1,0,0];
+            c.getObjects().forEach(function(o) {
+                if(o._tipo !== 'firma') return;
+                const w = o.width  * (o.scaleX || 1);
+                const h = o.height * (o.scaleY || 1);
+                const lx = o.left, ly = o.top;
+                ctx.save();
+                ctx.transform(vt[0], vt[1], vt[2], vt[3], vt[4], vt[5]);
+                // Línea de firma
+                ctx.beginPath();
+                ctx.strokeStyle = '#0369A1';
+                ctx.lineWidth = 1;
+                ctx.moveTo(lx + w * 0.06, ly + h * 0.52);
+                ctx.lineTo(lx + w * 0.94, ly + h * 0.52);
+                ctx.stroke();
+                // Etiqueta
+                const fs = Math.max(8, h * 0.16);
+                ctx.fillStyle = '#0369A1';
+                ctx.font = 'bold ' + fs + 'px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('✍ FIRMA', lx + w / 2, ly + h * 0.36);
+                ctx.restore();
+            });
+        });
         c.on('object:moving', e=>{
             const o=e.target;
             document.getElementById('selectionInfo').textContent=`X:${Math.round(o.left)} Y:${Math.round(o.top)} W:${Math.round(o.width*(o.scaleX||1))} H:${Math.round(o.height*(o.scaleY||1))}`;
@@ -920,18 +989,20 @@
             document.getElementById('selectionDot').style.background = 'var(--brand)';
 
             const tipo=obj._tipo||'';
-            const names={text:'Texto',variable:'Variable',qr:'Código QR',rect:'Figura',line:'Línea',image:'Imagen'};
+            const names={text:'Texto',variable:'Variable',qr:'Código QR',rect:'Figura',line:'Línea',image:'Imagen',firma:'Cuadro de firma'};
             document.getElementById('propType').textContent=names[tipo]||tipo;
-            document.getElementById('propSubtype').textContent=tipo==='image'?'Imagen insertada':'Elemento visual';
-            const icons={text:'<strong style="font-size:15px">T</strong>',qr:'<span style="font-size:13px">▦</span>',rect:'<span style="font-size:15px">■</span>',line:'<span style="font-size:15px">—</span>',image:'<span style="font-size:14px">🖼</span>'};
+            document.getElementById('propSubtype').textContent=tipo==='image'?'Imagen insertada':tipo==='firma'?'Firma del diploma':'Elemento visual';
+            const icons={text:'<strong style="font-size:15px">T</strong>',qr:'<span style="font-size:13px">▦</span>',rect:'<span style="font-size:15px">■</span>',line:'<span style="font-size:15px">—</span>',image:'<span style="font-size:14px">🖼</span>',firma:'<span style="font-size:13px">✍</span>'};
             document.getElementById('propIcon').innerHTML=icons[tipo]||'•';
 
             document.getElementById('propSecText').style.display=tipo==='text'?'':'none';
             document.getElementById('propSecImage').style.display=tipo==='image'?'':'none';
             document.getElementById('propSecQR').style.display=tipo==='qr'?'':'none';
+            document.getElementById('propSecFirma').style.display=tipo==='firma'?'':'none';
             document.getElementById('styleSecText').style.display=tipo==='text'?'':'none';
             document.getElementById('styleSecRect').style.display=tipo==='rect'?'':'none';
             document.getElementById('styleSecLine').style.display=tipo==='line'?'':'none';
+            document.getElementById('styleSecFirma').style.display=tipo==='firma'?'':'none';
 
             if(tipo==='image'&&obj._src){document.getElementById('imagePreviewContainer').classList.remove('hidden');document.getElementById('imagePreview').src=obj._src;}
             else document.getElementById('imagePreviewContainer').classList.add('hidden');
@@ -974,6 +1045,22 @@
             }
             if(obj._tipo==='rect'){document.getElementById('propFill').value=obj.fill||'#ffffff';document.getElementById('propStroke').value=obj.stroke||'#000000';document.getElementById('propStrokeWidth').value=obj.strokeWidth||1;document.getElementById('propRx').value=obj.rx||0;}
             if(obj._tipo==='line'){document.getElementById('propLineColor').value=obj.stroke||'#000000';document.getElementById('propLineWidth').value=obj.strokeWidth||2;}
+            if(obj._tipo==='firma'){
+                document.getElementById('firmaShowName').checked=obj._mostrarNombre??true;
+                document.getElementById('firmaShowCargo').checked=obj._mostrarCargo??true;
+                document.getElementById('firmaColor').value=obj._firmaColor||'#1E293B';
+                document.getElementById('firmaFontSize').value=obj._firmaFontSize||11;
+            }
+        }
+
+        function updateFirmaProp(prop, value) {
+            const obj = c.getActiveObject(); if (!obj || obj._tipo !== 'firma') return;
+            if(prop==='mostrar_nombre') obj._mostrarNombre=value;
+            else if(prop==='mostrar_cargo') obj._mostrarCargo=value;
+            else if(prop==='fill') { obj._firmaColor=value; obj.set('stroke', value); }
+            else if(prop==='fontSize') obj._firmaFontSize=value;
+            c.requestRenderAll();
+            pushUndo();
         }
 
         function updateProp(prop, value) {
@@ -1217,6 +1304,7 @@
                 else if(tipo==='rect') cfg={fill:o.fill,stroke:o.stroke,strokeWidth:o.strokeWidth,rx:o.rx,ry:o.ry};
                 else if(tipo==='line') cfg={stroke:o.stroke,strokeWidth:o.strokeWidth};
                 else if(tipo==='image') cfg={src:o._src||'',path:o._path||''};
+                else if(tipo==='firma') cfg={mostrar_nombre:o._mostrarNombre??true,mostrar_cargo:o._mostrarCargo??true,fontSize:o._firmaFontSize||11,fill:o._firmaColor||'#1E293B'};
                 return{id:o._elId&&!o._elId.toString().startsWith('el_')?parseInt(o._elId):null,tipo:tipo,x:Math.round(o.left),y:Math.round(o.top),width:Math.round(o.width*(o.scaleX||1)),height:Math.round(o.height*(o.scaleY||1)),config_json:JSON.stringify(cfg),orden:i+1};
             }).filter(Boolean);
         }
